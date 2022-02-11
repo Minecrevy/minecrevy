@@ -1,0 +1,18 @@
+[package]
+name = "minecrevy_key"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A library to parse Minecraft resource keys."
+repository = "https://github.com/ItsDoot/minecrevy"
+keywords = ["minecraft", "key", "io", "brigadier"]
+readme = "README.md"
+
+[features]
+default = ["minecrevy_io_str"]
+
+[dependencies]
+# workspace
+minecrevy_io_str = { path = "../io_str", optional = true }
+# utils
+thiserror = "^1.0"
