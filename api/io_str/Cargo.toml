@@ -1,0 +1,18 @@
+[package]
+name = "minecrevy_io_str"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["glam", "hematite-nbt"]
+
+[dependencies]
+# workspace
+minecrevy_io_buf = { path = "../io_buf", features = ["blocking"] }
+minecrevy_io_str_derive = { path = "../io_str_derive" }
+# types
+uuid = "^0.8"
+# feature: glam
+glam = { version = "^0.20", optional = true }
+# feature: hematite-nbt
+hematite-nbt = { version = "^0.5", optional = true }
