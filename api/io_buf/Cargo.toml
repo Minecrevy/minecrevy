@@ -1,0 +1,23 @@
+[package]
+name = "minecrevy_io_buf"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "Methods for reading and writing Minecraft protocol data types to and from I/O buffers."
+repository = "https://github.com/ItsDoot/minecrevy"
+keywords = ["minecraft", "protocol", "io", "packet", "tokio"]
+readme = "README.md"
+
+[features]
+default = ["blocking", "async-tokio"]
+blocking = ["byteorder"]
+async-tokio = ["tokio", "async-trait", "blocking"]
+
+[dependencies]
+# required
+uuid = "^0.8"
+# feature: blocking
+byteorder = { version = "^1.4", optional = true }
+# feature: tokio
+tokio = { version = "^1.15", features = ["io-util"], optional = true }
+async-trait = { version = "^0.1", optional = true }
