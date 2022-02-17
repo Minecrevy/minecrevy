@@ -1,0 +1,13 @@
+[package]
+name = "minecrevy_tcp"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "A library to bridge async TCP servers/clients with synchronous processing."
+repository = "https://github.com/ItsDoot/minecrevy"
+keywords = ["minecraft", "tcp", "async", "sync"]
+readme = "README.md"
+
+[dependencies]
+flume = "^0.10"
+tokio = { version = "^1.16", features = ["net"] }
