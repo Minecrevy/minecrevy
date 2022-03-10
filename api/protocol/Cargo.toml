@@ -1,0 +1,11 @@
+[package]
+name = "minecrevy_protocol"
+version = "0.3.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# workspace: api
+minecrevy_io_buf = { path = "../io_buf" }
+minecrevy_io_str = { path = "../io_str" }
