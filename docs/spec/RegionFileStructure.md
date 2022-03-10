@@ -121,7 +121,10 @@ int regionLocalX = chunkX % 32;
 int regionLocalZ = chunkZ % 32;
 
 int tableIndex = regionLocalX + regionLocalZ * 32;
-Offset offset = offsetTable.getOffset(tableIndex);
+int offset = offsetTable.getOffset(tableIndex);
+
+int offsetIndex = offset >> 8 & 0xFF_FF_FF;
+int offsetCount = offset & 0xFF;
 ```
 
 ### 3. Collect the bytes for all the given chunk's sectors combined.
@@ -129,7 +132,7 @@ Offset offset = offsetTable.getOffset(tableIndex);
 ```java
 // if offset.index and offset.count are both zero, the chunk has not been saved yet.
 
-byte[] data = sectors.getByteRange(offset.index, offset.count);
+byte[] data = sectors.getByteRange(offsetIndex, offsetCount);
 ```
 
 ### 4. Split the data into its components: length, compression, chunk data.
