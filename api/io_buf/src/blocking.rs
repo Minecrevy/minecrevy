@@ -105,7 +105,7 @@ pub trait ReadMinecraftExt: Read {
     /// Reads a signed 32 bit integer from the underlying reader, using variable-length encoding.
     fn read_var_i32(&mut self) -> io::Result<i32> {
         let mut result: i32 = 0;
-        let mut len: i32 = 0;
+        let mut len: u8 = 0;
         loop {
             let byte: u8 = self.read_u8()?;
             result |= i32::from(byte & 0x7F) << (7 * len);
@@ -134,6 +134,29 @@ pub trait ReadMinecraftExt: Read {
                 format!("invalid VarInt value as length: {}", value))
             )?;
         Ok(value)
+    }
+
+    /// Reads a signed 64 bit integer from the underlying reader, using variable-length encoding.
+    fn read_var_i64(&mut self) -> io::Result<i64> {
+        let mut result: i64 = 0;
+        let mut len: u8 = 0;
+        loop {
+            let byte: u8 = self.read_u8()?;
+            result |= i64::from(byte & 0x7F) << (7 * len);
+
+            len += 1;
+            if len > 10 {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    "exceeded maximum VarLong byte length",
+                ));
+            }
+
+            if byte & 0x80 == 0 {
+                break;
+            }
+        }
+        return Ok(result);
     }
 
     /// Reads a number of bytes from the underlying reader, with a variable-length 32 bit integer as the length prefix.
@@ -285,6 +308,20 @@ pub trait WriteMinecraftExt: Write {
                 format!("invalid VarInt value as length: {}", v),
             ))?;
         self.write_var_i32(v)
+    }
+
+    /// Writes a signed 64 bit integer to the underlying writer, using variable-length encoding.
+    fn write_var_i64(&mut self, v: i64) -> io::Result<()> {
+        let mut v = v as u32;
+        loop {
+            if (v & !0x7F) == 0 {
+                self.write_u8(v as u8)?;
+                return Ok(());
+            }
+
+            self.write_u8(((v & 0x7F) | 0x80) as u8)?;
+            v >>= 7;
+        }
     }
 
     /// Writes a number of bytes to the underlying writer, with a variable-length 32 bit integer as the length prefix.
