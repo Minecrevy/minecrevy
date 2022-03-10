@@ -11,7 +11,7 @@
 //! Now all you have to do (usually), is to start deriving:
 //!
 //! ```rust
-//! #[derive(McRead)]
+//! #[derive(minecrevy_io_str::McRead)]
 //! pub struct HandshakePacket {
 //!     #[mcio(varint)]
 //!     pub version: i32,
@@ -31,33 +31,41 @@
 //! just swap `#[derive(McRead)]` with `#[derive(McWrite)]` and you're good to go.
 //! Or maybe you want to be able to read AND write a type! Just derive both then!
 
-#![cfg_attr(feature = "glam", feature(maybe_uninit_uninit_array))]
-#![cfg_attr(feature = "glam", feature(maybe_uninit_array_assume_init))]
-#![forbid(missing_docs)]
+#![feature(maybe_uninit_uninit_array)]
+#![feature(maybe_uninit_array_assume_init)]
+#![warn(missing_docs)]
 
+pub use self::bitset::*;
+#[cfg(feature = "enumflags2")]
+pub use self::enumflags2::*;
 #[cfg(feature = "glam")]
 pub use self::glam::*;
-#[cfg(feature = "hematite-nbt")]
+pub use self::macros::*;
+#[cfg(feature = "nbt")]
 pub use self::nbt::*;
 pub use self::options::*;
 pub use self::read::*;
 pub use self::write::*;
 
+mod bitset;
+#[cfg(feature = "enumflags2")]
+mod enumflags2;
 #[cfg(feature = "glam")]
 mod glam;
-#[cfg(feature = "hematite-nbt")]
+mod macros;
+#[cfg(feature = "nbt")]
 mod nbt;
 mod options;
 mod read;
 mod write;
 
-#[derive(McRead, McWrite)]
-struct Test {
-    #[mcio(varint)]
-    len: i32,
-    #[mcio(max_len = 16)]
-    name: String,
-    b: u8,
-    #[mcio(length = "varint", inner::max_len = 16)]
-    values: Vec<String>,
-}
+// #[derive(McRead, McWrite)]
+// struct Test {
+//     #[mcio(varint)]
+//     len: i32,
+//     #[mcio(max_len = 16)]
+//     name: String,
+//     b: u8,
+//     #[mcio(length = "varint", inner::max_len = 16)]
+//     values: Vec<String>,
+// }

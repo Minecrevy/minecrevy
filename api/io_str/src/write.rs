@@ -1,11 +1,13 @@
+use std::collections::HashMap;
+use std::hash::BuildHasher;
 use std::io::{self, Write};
 
 use uuid::Uuid;
 
 use minecrevy_io_buf::{RawPacket, WriteMinecraftExt};
 pub use minecrevy_io_str_derive::McWrite;
-use crate::ArrayOptions;
 
+use crate::ArrayOptions;
 use crate::options::{IntOptions, ListLength, ListOptions, OptionExistence, OptionOptions, StringOptions};
 
 /// The `McWrite` trait allows for converting data types into bytes.
@@ -27,7 +29,7 @@ macro_rules! mcwrite_impl_primitive {
             type Options = ();
 
             #[inline]
-            fn write<W: Write>(&self, mut writer: W, _: Self::Options) -> io::Result<()> {
+            fn write<W: Write>(&self, mut writer: W, (): Self::Options) -> io::Result<()> {
                 $fn(&mut writer, *self)
             }
         }
@@ -43,7 +45,6 @@ mcwrite_impl_primitive!(
     u128 => WriteMinecraftExt::write_u128,
     i8 => WriteMinecraftExt::write_i8,
     i16 => WriteMinecraftExt::write_i16,
-    i64 => WriteMinecraftExt::write_i64,
     i128 => WriteMinecraftExt::write_i128,
     f32 => WriteMinecraftExt::write_f32,
     f64 => WriteMinecraftExt::write_f64,
@@ -60,11 +61,22 @@ impl McWrite for i32 {
     }
 }
 
+impl McWrite for i64 {
+    type Options = IntOptions;
+
+    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
+        match options.varint {
+            true => writer.write_var_i64(*self),
+            false => writer.write_i64(*self),
+        }
+    }
+}
+
 impl McWrite for bool {
     type Options = ();
 
     #[inline]
-    fn write<W: Write>(&self, mut writer: W, _: Self::Options) -> io::Result<()> {
+    fn write<W: Write>(&self, mut writer: W, (): Self::Options) -> io::Result<()> {
         writer.write_u8(if *self { 0x01 } else { 0x00 })
     }
 }
@@ -73,7 +85,7 @@ impl McWrite for Uuid {
     type Options = ();
 
     #[inline]
-    fn write<W: Write>(&self, mut writer: W, _: Self::Options) -> io::Result<()> {
+    fn write<W: Write>(&self, mut writer: W, (): Self::Options) -> io::Result<()> {
         writer.write_u128(self.as_u128())
     }
 }
@@ -102,10 +114,43 @@ impl<T: McWrite> McWrite for Vec<T> {
     fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
         match options.length {
             ListLength::VarInt => writer.write_var_i32_len(self.len())?,
+            ListLength::Byte => {
+                let len = i8::try_from(self.len())
+                    .map_err(|_| io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("exceeded maximum list length: {}", self.len()),
+                    ))?;
+                writer.write_i8(len)?;
+            }
             ListLength::Remaining => { /* no length prefix since its inferred */ }
         }
         for element in self {
             element.write(&mut writer, options.inner.clone())?;
+        }
+        Ok(())
+    }
+}
+
+impl<K: McWrite, V: McWrite, S: BuildHasher> McWrite for HashMap<K, V, S> {
+    type Options = ListOptions<(K::Options, V::Options)>;
+
+    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
+        let (k, v) = options.inner;
+        match options.length {
+            ListLength::VarInt => writer.write_var_i32_len(self.len())?,
+            ListLength::Byte => {
+                let len = i8::try_from(self.len())
+                    .map_err(|_| io::Error::new(
+                        io::ErrorKind::InvalidData,
+                        format!("exceeded maximum list length: {}", self.len()),
+                    ))?;
+                writer.write_i8(len)?;
+            }
+            ListLength::Remaining => { /* no length prefix since its inferred */ }
+        }
+        for (key, value) in self {
+            key.write(&mut writer, k.clone())?;
+            value.write(&mut writer, v.clone())?;
         }
         Ok(())
     }
@@ -143,7 +188,70 @@ impl McWrite for RawPacket {
     type Options = ();
 
     #[inline]
-    fn write<W: Write>(&self, mut writer: W, _options: Self::Options) -> io::Result<()> {
+    fn write<W: Write>(&self, mut writer: W, (): Self::Options) -> io::Result<()> {
         writer.write_packet(self)
+    }
+}
+
+impl McWrite for () {
+    type Options = ();
+
+    fn write<W: Write>(&self, _writer: W, (): Self::Options) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+impl<A: McWrite> McWrite for (A, ) {
+    type Options = (A::Options, );
+
+    fn write<W: Write>(&self, mut writer: W, (a, ): Self::Options) -> io::Result<()> {
+        self.0.write(&mut writer, a)?;
+        Ok(())
+    }
+}
+
+impl<A: McWrite, B: McWrite> McWrite for (A, B) {
+    type Options = (A::Options, B::Options);
+
+    fn write<W: Write>(&self, mut writer: W, (a, b): Self::Options) -> io::Result<()> {
+        self.0.write(&mut writer, a)?;
+        self.1.write(&mut writer, b)?;
+        Ok(())
+    }
+}
+
+impl<A: McWrite, B: McWrite, C: McWrite> McWrite for (A, B, C) {
+    type Options = (A::Options, B::Options, C::Options);
+
+    fn write<W: Write>(&self, mut writer: W, (a, b, c): Self::Options) -> io::Result<()> {
+        self.0.write(&mut writer, a)?;
+        self.1.write(&mut writer, b)?;
+        self.2.write(&mut writer, c)?;
+        Ok(())
+    }
+}
+
+impl<A: McWrite, B: McWrite, C: McWrite, D: McWrite> McWrite for (A, B, C, D) {
+    type Options = (A::Options, B::Options, C::Options, D::Options);
+
+    fn write<W: Write>(&self, mut writer: W, (a, b, c, d): Self::Options) -> io::Result<()> {
+        self.0.write(&mut writer, a)?;
+        self.1.write(&mut writer, b)?;
+        self.2.write(&mut writer, c)?;
+        self.3.write(&mut writer, d)?;
+        Ok(())
+    }
+}
+
+impl<A: McWrite, B: McWrite, C: McWrite, D: McWrite, E: McWrite> McWrite for (A, B, C, D, E) {
+    type Options = (A::Options, B::Options, C::Options, D::Options, E::Options);
+
+    fn write<W: Write>(&self, mut writer: W, (a, b, c, d, e): Self::Options) -> io::Result<()> {
+        self.0.write(&mut writer, a)?;
+        self.1.write(&mut writer, b)?;
+        self.2.write(&mut writer, c)?;
+        self.3.write(&mut writer, d)?;
+        self.4.write(&mut writer, e)?;
+        Ok(())
     }
 }

@@ -1,5 +1,7 @@
 use std::io::{Read, Write};
 
+use serde::{Deserialize, Serialize};
+
 use crate::{McRead, McWrite};
 
 /// The type of compression used for encoding and decoding an NBT tag.
@@ -26,8 +28,31 @@ impl From<&str> for Compression {
 pub struct NbtOptions {
     /// The compression type, if any, for encoding and decoding an NBT tag.
     pub compression: Option<Compression>,
-    /// The textual header for an NBT compound when being encoded.
-    pub header: Option<String>,
+}
+
+impl McRead for nbt::Blob {
+    type Options = NbtOptions;
+
+    fn read<R: Read>(mut reader: R, options: Self::Options) -> std::io::Result<Self> {
+        Ok(match options.compression {
+            None => Self::from_reader(&mut reader)?,
+            Some(Compression::Gzip) => Self::from_gzip_reader(&mut reader)?,
+            Some(Compression::Zlib) => Self::from_zlib_reader(&mut reader)?,
+        })
+    }
+}
+
+impl McWrite for nbt::Blob {
+    type Options = NbtOptions;
+
+    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> std::io::Result<()> {
+        match options.compression {
+            None => self.to_writer(&mut writer)?,
+            Some(Compression::Gzip) => self.to_gzip_writer(&mut writer)?,
+            Some(Compression::Zlib) => self.to_zlib_writer(&mut writer)?,
+        }
+        Ok(())
+    }
 }
 
 impl McRead for nbt::Value {
@@ -46,11 +71,39 @@ impl McWrite for nbt::Value {
     type Options = NbtOptions;
 
     fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> std::io::Result<()> {
-        let header = options.header.as_ref().map(|s| s.as_str());
         match options.compression {
-            None => nbt::to_writer(&mut writer, self, header)?,
-            Some(Compression::Gzip) => nbt::to_gzip_writer(&mut writer, self, header)?,
-            Some(Compression::Zlib) => nbt::to_zlib_writer(&mut writer, self, header)?,
+            None => nbt::to_writer(&mut writer, self, None)?,
+            Some(Compression::Gzip) => nbt::to_gzip_writer(&mut writer, self, None)?,
+            Some(Compression::Zlib) => nbt::to_zlib_writer(&mut writer, self, None)?,
+        }
+        Ok(())
+    }
+}
+
+/// Wrapper type that allows any [`Serialize`]/[`Deserialize`] type to be encoded/decoded as an NBT tag.
+#[derive(Clone, PartialEq, Debug)]
+pub struct Nbt<T>(pub T);
+
+impl<T: for<'de> Deserialize<'de>> McRead for Nbt<T> {
+    type Options = NbtOptions;
+
+    fn read<R: Read>(reader: R, options: Self::Options) -> std::io::Result<Self> {
+        Ok(Nbt(match options.compression {
+            None => nbt::from_reader(reader)?,
+            Some(Compression::Gzip) => nbt::from_gzip_reader(reader)?,
+            Some(Compression::Zlib) => nbt::from_zlib_reader(reader)?,
+        }))
+    }
+}
+
+impl<T: Serialize> McWrite for Nbt<T> {
+    type Options = NbtOptions;
+
+    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> std::io::Result<()> {
+        match options.compression {
+            None => nbt::to_writer(&mut writer, &self.0, None)?,
+            Some(Compression::Gzip) => nbt::to_gzip_writer(&mut writer, &self.0, None)?,
+            Some(Compression::Zlib) => nbt::to_zlib_writer(&mut writer, &self.0, None)?,
         }
         Ok(())
     }

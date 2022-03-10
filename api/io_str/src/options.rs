@@ -16,13 +16,37 @@ pub struct IntOptions {
     pub varint: bool,
 }
 
+impl IntOptions {
+    /// Constructs an [`IntOptions`] with `varint` set to false.
+    pub const fn normal() -> Self {
+        Self {
+            varint: false
+        }
+    }
+
+    /// Constructs an [`IntOptions`] with `varint` set to true.
+    pub const fn varint() -> Self {
+        Self {
+            varint: true
+        }
+    }
+}
+
 /// Configurable options for parsing [`String`]s in the Minecraft protocol.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct StringOptions {
     /// Specifies that the encoded/decoded string should not exceed the specified length.
     ///
     /// Setting this option to [`None`] simply means there is no length checking.
     pub max_len: Option<usize>,
+}
+
+impl Default for StringOptions {
+    fn default() -> Self {
+        Self {
+            max_len: Some(32767),
+        }
+    }
 }
 
 /// Configurable options for parsing lists of things in the Minecraft protocol.
@@ -39,6 +63,24 @@ pub struct ListOptions<TOptions> {
     pub inner: TOptions,
 }
 
+impl<TOptions> ListOptions<TOptions> {
+    /// Constructs a [`ListOptions`] with `length` set to [`ListLength::VarInt`].
+    pub fn varint(inner: TOptions) -> Self {
+        Self {
+            length: ListLength::VarInt,
+            inner,
+        }
+    }
+
+    /// Constructs a [`ListOptions`] with `length` set to [`ListLength::Remaining`].
+    pub fn remaining(inner: TOptions) -> Self {
+        Self {
+            length: ListLength::Remaining,
+            inner,
+        }
+    }
+}
+
 /// Configurable options for parsing exact sequences of things in the Minecraft protocol.
 #[derive(Clone, Debug, Default)]
 pub struct ArrayOptions<TOptions> {
@@ -51,6 +93,8 @@ pub struct ArrayOptions<TOptions> {
 pub enum ListLength {
     /// Specifies that the collection should be prefixed with a length encoded as a VarInt.
     VarInt,
+    /// Specifies that the collection should be prefixed with a length encoded as an `i8`.
+    Byte,
     /// Specifies that the collection's length should be calculated from the bytes remaining in the stream.
     Remaining,
 }
@@ -59,6 +103,7 @@ impl From<&str> for ListLength {
     fn from(v: &str) -> Self {
         match v {
             "varint" => Self::VarInt,
+            "byte" => Self::Byte,
             "remaining" => Self::Remaining,
             _ => panic!("invalid length option"),
         }

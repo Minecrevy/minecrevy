@@ -10,7 +10,7 @@ macro_rules! vec_impl {
         impl McRead for $ty {
             type Options = ();
 
-            fn read<R: Read>(reader: R, _: Self::Options) -> std::io::Result<Self> {
+            fn read<R: Read>(reader: R, (): Self::Options) -> std::io::Result<Self> {
                 let arr = <$arr>::read(reader, Default::default())?;
                 Ok(<$ty>::from(arr))
             }
@@ -18,7 +18,7 @@ macro_rules! vec_impl {
         impl McWrite for $ty {
             type Options = ();
 
-            fn write<W: Write>(&self, writer: W, _: Self::Options) -> std::io::Result<()> {
+            fn write<W: Write>(&self, writer: W, (): Self::Options) -> std::io::Result<()> {
                 self.to_array().write(writer, Default::default())
             }
         }

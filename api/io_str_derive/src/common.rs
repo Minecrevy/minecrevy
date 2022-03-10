@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use darling::{ast, FromDeriveInput, FromField};
+use darling::{ast, FromDeriveInput, FromField, FromMeta, FromVariant};
 use proc_macro2::{Ident, Span, TokenStream};
 use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
@@ -8,11 +8,37 @@ use syn::{Field, Lit, LitBool, Meta, NestedMeta};
 use syn::spanned::Spanned;
 
 #[derive(Debug, FromDeriveInput)]
-#[darling(attributes(mcio), supports(struct_any))]
+#[darling(attributes(mcio), supports(struct_any, enum_any))]
 pub struct McIo {
     pub ident: syn::Ident,
     pub generics: syn::Generics,
-    pub data: ast::Data::<(), McIoField>,
+    pub data: ast::Data::<McIoVariant, McIoField>,
+    #[darling(default)]
+    pub kind: Option<EnumKind>,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+pub enum EnumKind {
+    VarInt,
+    I8,
+    U8,
+}
+
+impl FromMeta for EnumKind {
+    fn from_string(value: &str) -> darling::Result<Self> {
+        match value {
+            "varint" => Ok(Self::VarInt),
+            "i8" => Ok(Self::I8),
+            "u8" => Ok(Self::U8),
+            _ => Err(darling::Error::unknown_value(value)),
+        }
+    }
+}
+
+#[derive(Debug, FromVariant)]
+pub struct McIoVariant {
+    pub ident: syn::Ident,
+    pub fields: ast::Fields<McIoField>,
 }
 
 #[derive(Debug)]

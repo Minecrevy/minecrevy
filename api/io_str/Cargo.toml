@@ -1,10 +1,11 @@
 [package]
 name = "minecrevy_io_str"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 
 [features]
-default = ["glam", "hematite-nbt"]
+default = ["glam", "nbt", "enumflags2"]
+nbt = ["hematite-nbt", "serde"]
 
 [dependencies]
 # workspace
@@ -14,5 +15,8 @@ minecrevy_io_str_derive = { path = "../io_str_derive" }
 uuid = "^0.8"
 # feature: glam
 glam = { version = "^0.20", optional = true }
-# feature: hematite-nbt
+# feature: nbt
 hematite-nbt = { version = "^0.5", optional = true }
+serde = { version = "^1.0", optional = true }
+# feature: enumflags2
+enumflags2 = { version = "^0.7", optional = true }

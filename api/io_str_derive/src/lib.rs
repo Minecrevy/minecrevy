@@ -2,11 +2,11 @@
 
 use darling::FromDeriveInput;
 use syn::{DeriveInput, parse_macro_input};
-use crate::util::McIo;
+use crate::common::McIo;
 
 mod read;
 mod write;
-pub(crate) mod util;
+pub(crate) mod common;
 
 #[proc_macro_derive(McRead, attributes(mcio))]
 pub fn McRead(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
