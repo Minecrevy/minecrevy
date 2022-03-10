@@ -50,19 +50,17 @@ The following table is generally how a region file is laid out.
 <tr>
     <td>Data</td>
     <td>Array of 4091 bytes</td>
-    <td>Part of chunk data as a (usually-)compressed NBT compound.</td>
+    <td rowspan="3">Chunk data as a (usually-)compressed NBT compound.</td>
 </tr>
 <tr>
     <td>Sector 2</td>
     <td>Data</td>
     <td>Array of 4096 bytes</td>
-    <td>Part of chunk data.</td>
 </tr>
 <tr>
     <td>Sector 3</td>
     <td>Data</td>
     <td>Array of 4096 bytes</td>
-    <td>Part of chunk data.</td>
 </tr>
 <tr>
     <td colspan="4">Rest of sectors...</td>
@@ -82,13 +80,12 @@ The following table is generally how a region file is laid out.
 <tr>
     <td>Data</td>
     <td>Array of 4091 bytes</td>
-    <td>See above.</td>
+    <td rowspan="2">See above.</td>
 </tr>
 <tr>
     <td>Sector 2</td>
     <td>Data</td>
     <td>Array of 4096 bytes</td>
-    <td>See above.</td>
 </tr>
 <tr>
     <td colspan="4">Rest of sectors...</td>
