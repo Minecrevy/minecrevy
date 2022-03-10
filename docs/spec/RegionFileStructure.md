@@ -37,8 +37,8 @@ The following table is generally how a region file is laid out.
     <td colspan="4">1023 more timestamps...</td>
 </tr>
 <tr>
-    <td rowspan="12">Sectors</td>
-    <td rowspan="6">Chunk 1</td>
+    <td rowspan="13">Sectors</td>
+    <td rowspan="6">Chunk A</td>
     <td rowspan="3">Sector 1</td>
     <td>Length</td>
     <td>int32</td>
@@ -68,7 +68,10 @@ The following table is generally how a region file is laid out.
     <td colspan="3">Rest of sectors...</td>
 </tr>
 <tr>
-    <td rowspan="5">Chunk 2</td>
+    <td colspan="5">Potentially empty sectors...</td>
+</tr>
+<tr>
+    <td rowspan="5">Chunk B</td>
     <td rowspan="3">Sector 1</td>
     <td>Length</td>
     <td>int32</td>
