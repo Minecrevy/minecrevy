@@ -1,15 +1,19 @@
-#![doc = include_str!("../README.md")]
+#![doc = include_str ! ("../README.md")]
 
-#![forbid(missing_docs)]
+#![warn(missing_docs)]
 
 use std::borrow::Cow;
 use std::fmt;
 
 #[cfg(feature = "minecrevy_io_str")]
 pub use self::io_str::*;
+#[cfg(feature = "serde")]
+pub use self::serde::*;
 
 #[cfg(feature = "minecrevy_io_str")]
 mod io_str;
+#[cfg(feature = "serde")]
+mod serde;
 
 /// The error type returned when [`Key`] validation fails.
 #[derive(thiserror::Error, Debug)]
@@ -100,25 +104,27 @@ impl Key {
         }
     }
 
-    /// Creates a key without validating the namespace or path.
-    ///
-    /// # Safety
-    /// `namespace` and `path` must be valid (`[a-zA-Z0-9._-]*` and `[a-zA-Z0-9._-/]*`, respectively).
-    pub const unsafe fn new_const(namespace: &'static str, path: &'static str) -> Self {
-        Self {
-            namespace: Cow::Borrowed(namespace),
-            path: Cow::Borrowed(path),
-        }
-    }
-
-    /// Gets the namespace.
+    /// Returns the namespace.
     pub fn namespace(&self) -> &str {
         &self.namespace
     }
 
-    /// Gets the path.
+    /// Returns the path.
     pub fn path(&self) -> &str {
         &self.path
+    }
+
+    /// Returns the key as a (`namespace`, `path`) pair.
+    pub fn as_parts(&self) -> (&str, &str) {
+        (&self.namespace, &self.path)
+    }
+
+    /// Creates a [`KeyRef`], useful for constant matching.
+    pub fn as_ref(&self) -> KeyRef {
+        KeyRef {
+            namespace: self.namespace(),
+            path: self.path(),
+        }
     }
 }
 
@@ -149,6 +155,55 @@ impl Key {
 }
 
 impl fmt::Display for Key {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}:{}", self.namespace, self.path)
+    }
+}
+
+/// A reference to a key.
+///
+/// Mostly a workaround for `Cow`s not being able to be used in const pattern matching.
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+pub struct KeyRef<'a> {
+    namespace: &'a str,
+    path: &'a str,
+}
+
+impl<'a> KeyRef<'a> {
+    /// Gets the namespace.
+    pub fn namespace(&self) -> &str {
+        &self.namespace
+    }
+
+    /// Gets the path.
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+}
+
+impl KeyRef<'static> {
+    /// Creates a key without validating the namespace or path.
+    ///
+    /// # Safety
+    /// `namespace` and `path` must be valid (`[a-zA-Z0-9._-]*` and `[a-zA-Z0-9._-/]*`, respectively).
+    pub const unsafe fn new_unchecked(namespace: &'static str, path: &'static str) -> Self {
+        Self {
+            namespace,
+            path,
+        }
+    }
+}
+
+impl<'a> From<KeyRef<'a>> for Key {
+    fn from(key_ref: KeyRef<'a>) -> Self {
+        Key {
+            namespace: Cow::Owned(key_ref.namespace.to_owned()),
+            path: Cow::Owned(key_ref.path.to_owned()),
+        }
+    }
+}
+
+impl<'a> fmt::Display for KeyRef<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}:{}", self.namespace, self.path)
     }
