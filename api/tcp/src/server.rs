@@ -6,7 +6,6 @@ use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio::runtime::{Handle, Runtime};
 use tokio::task::JoinHandle;
 
-use crate::SocketId;
 use crate::util::Channel;
 
 /// An event received from the server task.
@@ -17,7 +16,12 @@ pub enum ServerEvent {
     /// Sent when a new client connection is received.
     Accept(TcpStream, SocketAddr),
     /// Sent when a client connection has closed.
-    Disconnect(SocketId),
+    Disconnect(
+        #[cfg(feature = "bevy")]
+        bevy::prelude::Entity,
+        #[cfg(not(feature = "bevy"))]
+        SocketAddr,
+    ),
     /// Sent when the server has stopped accepting connections.
     Close,
 }
@@ -27,7 +31,7 @@ pub enum ServerEvent {
 pub struct Server {
     runtime: Runtime,
     listener: Option<JoinHandle<()>>,
-    /// Message channel for receiving and sending events.
+    /// The [`flume`] channel for [`ServerEvent`]s.
     pub events: Channel<ServerEvent>,
 }
 
@@ -62,11 +66,11 @@ impl Server {
     pub fn stop(&mut self) {
         if let Some(listener) = self.listener.take() {
             listener.abort();
-        }
 
-        // Send a disconnect event to ourselves so calling stop() doesn't have to be handled manually
-        self.events.send.try_send(ServerEvent::Close)
-            .expect("failed to send server event");
+            // Send a disconnect event to ourselves so calling stop() doesn't have to be handled manually
+            self.events.send.try_send(ServerEvent::Close)
+                .expect("failed to send server event");
+        }
     }
 
     /// Returns an iterator of all incoming [ServerEvent]s.
