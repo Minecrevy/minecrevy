@@ -3,7 +3,7 @@ use std::io::Cursor;
 
 use minecrevy_io_str::{McRead, McWrite};
 
-/// A Minecraft protocol packet sent between the client and plugin.
+/// A Minecraft protocol packet sent between the client and server.
 pub trait Packet: 'static {
     /// Decodes a packet's content from a slice of bytes.
     fn decode(body: &[u8]) -> io::Result<Self>

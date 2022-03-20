@@ -3,11 +3,11 @@
 pub enum ProtocolState {
     /// The initial state used for negotiation.
     Handshake,
-    /// The state where plugin list data is collected.
+    /// The state where server list data is collected.
     Status,
     /// The state where player login handshake is performed.
     Login,
-    /// The state where normal plugin operation occurs.
+    /// The state where normal server operation occurs.
     Play,
 }
 
