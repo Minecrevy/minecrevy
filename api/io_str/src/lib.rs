@@ -59,13 +59,5 @@ mod options;
 mod read;
 mod write;
 
-// #[derive(McRead, McWrite)]
-// struct Test {
-//     #[mcio(varint)]
-//     len: i32,
-//     #[mcio(max_len = 16)]
-//     name: String,
-//     b: u8,
-//     #[mcio(length = "varint", inner::max_len = 16)]
-//     values: Vec<String>,
-// }
+#[cfg(test)]
+mod test;
