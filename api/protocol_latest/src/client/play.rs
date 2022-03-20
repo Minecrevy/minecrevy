@@ -9,7 +9,7 @@ use crate::types::*;
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct TeleportConfirm {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub teleport_id: i32,
 }
 
@@ -17,9 +17,9 @@ impl crate::Packet for TeleportConfirm {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct NBTQueryBlock {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub transaction_id: i32,
-    #[mcio(compressed)]
+    #[options(compressed = true)]
     pub position: IVec3,
 }
 
@@ -34,7 +34,7 @@ impl crate::Packet for DifficultyUpdate {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct ChatMessage {
-    #[mcio(max_len = 256)]
+    #[options(max_len = 256)]
     pub message: String,
 }
 
@@ -49,14 +49,14 @@ impl crate::Packet for ClientStatusUpdate {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct ClientSettings {
-    #[mcio(max_len = 16)]
+    #[options(max_len = 16)]
     pub locale: String,
     pub view_dst: i8,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub chat_mode: i32,
     pub chat_colors: bool,
     pub skin_parts: u8,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub main_hand: i32,
     pub enable_text_filter: bool,
     pub allow_server_listings: bool,
@@ -66,9 +66,9 @@ impl crate::Packet for ClientSettings {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct TabCompletion {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub transaction_id: i32,
-    #[mcio(max_len = 32500)]
+    #[options(max_len = 32500)]
     pub text: String,
 }
 
@@ -85,11 +85,11 @@ impl crate::Packet for ClickWindowButton {}
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct ClickWindowSlot {
     pub window_id: u8,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub state_id: i32,
     pub slot: i16,
     pub button: i8,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub mode: i32,
     pub slots: Vec<(i16, Slot)>,
     pub clicked: Slot,
@@ -107,8 +107,17 @@ impl crate::Packet for CloseWindow {}
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct PluginMessage {
     pub channel: Key,
-    #[mcio(length = "remaining")]
+    #[options(length = "remaining")]
     pub data: Vec<u8>,
+}
+
+impl PluginMessage {
+    pub fn brand(brand: String) -> Self {
+        Self {
+            channel: Key::new("minecraft", "brand").unwrap(),
+            data: brand.into_bytes(),
+        }
+    }
 }
 
 impl crate::Packet for PluginMessage {}
@@ -124,9 +133,9 @@ impl crate::Packet for BookEdit {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct NBTQueryEntity {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub transaction_id: i32,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub entity_id: i32,
 }
 
@@ -134,7 +143,7 @@ impl crate::Packet for NBTQueryEntity {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct EntityInteraction {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub entity_id: i32,
     pub kind: EntityInteractionKind,
     // TODO: other fields have weird Option<T> semantics
@@ -144,9 +153,9 @@ impl crate::Packet for EntityInteraction {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct StructureGeneration {
-    #[mcio(compressed)]
+    #[options(compressed = true)]
     pub position: IVec3,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub levels: i32,
     pub keep_jigsaws: bool,
 }
@@ -215,7 +224,7 @@ impl crate::Packet for BoatSteer {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct PickItem {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub slot: i32,
 }
 
@@ -248,10 +257,10 @@ impl crate::Packet for BlockDig {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct EntityAction {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub entity_id: i32,
     pub kind: EntityActionKind,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub jump_boost: i32,
 }
 
@@ -298,7 +307,7 @@ impl crate::Packet for ResourcePackResponse {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct DisplayedAdvancementTab {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub action: i32,
     // pub tab_id: Option<Key> // TODO: weird Option<T> semantics
 }
@@ -307,7 +316,7 @@ impl crate::Packet for DisplayedAdvancementTab {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct TradeSelection {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub slot: i32,
 }
 
@@ -315,9 +324,9 @@ impl crate::Packet for TradeSelection {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct BeaconEffectUpdate {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub primary: i32,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub secondary: i32,
 }
 
@@ -332,7 +341,7 @@ impl crate::Packet for HeldItemChange {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct CommandBlockUpdate {
-    #[mcio(compressed)]
+    #[options(compressed = true)]
     pub position: IVec3,
     pub command: String,
     pub mode: CommandBlockMode,
@@ -343,7 +352,7 @@ impl crate::Packet for CommandBlockUpdate {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct CommandBlockMinecartUpdate {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub entity_id: i32,
     pub command: String,
     pub track_output: bool,
@@ -361,7 +370,7 @@ impl crate::Packet for CreativeInventoryUpdate {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct JigsawBlockUpdate {
-    #[mcio(compressed)]
+    #[options(compressed = true)]
     pub position: IVec3,
     pub name: Key,
     pub target: Key,
@@ -374,7 +383,7 @@ impl crate::Packet for JigsawBlockUpdate {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct StructureBlockUpdate {
-    #[mcio(compressed)]
+    #[options(compressed = true)]
     pub position: IVec3,
     pub action: StructureBlockAction,
     pub mode: StructureBlockMode,
@@ -385,7 +394,7 @@ pub struct StructureBlockUpdate {
     pub rotation: StructureBlockRotation,
     pub metadata: String,
     pub integrity: f32,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub seed: i64,
     pub flags: i8,
 }
@@ -394,9 +403,9 @@ impl crate::Packet for StructureBlockUpdate {}
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct SignUpdate {
-    #[mcio(compressed)]
+    #[options(compressed = true)]
     pub position: IVec3,
-    #[mcio(inner::max_len = 384)]
+    #[options(inner.max_len = 384)]
     pub lines: [String; 4],
 }
 
@@ -419,7 +428,7 @@ impl crate::Packet for Spectate {}
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct PlayerBlockPlacement {
     pub hand: Hand,
-    #[mcio(compressed)]
+    #[options(compressed = true)]
     pub position: IVec3,
     pub face: Face,
     pub cursor_position: Vec3,

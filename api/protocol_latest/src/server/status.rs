@@ -8,7 +8,7 @@ use minecrevy_io_buf::WriteMinecraftExt;
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_text::{Color, Style, Text};
 
-/// Sends plugin information to the client, including player count, maximum player count, an MOTD, etc.
+/// Sends server information to the client, including player count, maximum player count, an MOTD, etc.
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct StatusResponse(pub Motd);
 
@@ -17,21 +17,21 @@ impl crate::Packet for StatusResponse {}
 /// Replies to the client for latency testing.
 pub type StatusPong = crate::client::StatusPing;
 
-/// Basic plugin information sent by the plugin.
+/// Basic server information sent by the server.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Motd {
-    /// The protocol version that the plugin supports.
+    /// The protocol version that the server supports.
     pub version: MotdVersion,
     /// The player statistic information.
     pub players: MotdPlayers,
-    /// The plugin MOTD text.
+    /// The server MOTD text.
     pub description: Text,
-    /// The plugin icon.
+    /// The server icon.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub favicon: Option<String>,
 }
 
-/// The protocol version that a plugin supports, and the human readable name for said version.
+/// The protocol version that a server supports, and the human readable name for said version.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct MotdVersion {
     /// The human readable name of the protocol version.

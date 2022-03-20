@@ -1,4 +1,4 @@
-//! This module contains any packets sent by the plugin.
+//! This module contains any packets sent by the server.
 
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_protocol::{PacketCodec, ProtocolState};

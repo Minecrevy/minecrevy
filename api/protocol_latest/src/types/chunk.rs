@@ -33,13 +33,13 @@ pub enum Palette {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct SingleValuePalette {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub value: i32,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct IndirectPalette {
-    #[mcio(inner::varint)]
+    #[options(inner.varint = true)]
     pub values: Vec<i32>,
 }
 
@@ -109,7 +109,7 @@ impl McWrite for Palette {
 pub struct BlockEntity {
     pub section_xz: u8,
     pub y: i16,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub kind: i32,
     pub data: nbt::Value,
 }

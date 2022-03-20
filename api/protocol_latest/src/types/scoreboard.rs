@@ -30,14 +30,14 @@ minecrevy_io_str::u8_enum! {
 pub struct CreateTeam {
     pub name: Text,
     pub friendly_flags: i8,
-    #[mcio(max_len = 32)]
+    #[options(max_len = 32)]
     pub name_tag_visibility: String,
-    #[mcio(max_len = 32)]
+    #[options(max_len = 32)]
     pub collision_rule: String,
     pub style: TeamStyle,
     pub prefix: Text,
     pub suffix: Text,
-    #[mcio(inner::max_len = 40)]
+    #[options(inner.max_len = 40)]
     pub entities: Vec<String>,
 }
 
@@ -48,9 +48,9 @@ pub struct RemoveTeam;
 pub struct UpdateTeam {
     pub name: Text,
     pub friendly_flags: i8,
-    #[mcio(max_len = 32)]
+    #[options(max_len = 32)]
     pub name_tag_visibility: String,
-    #[mcio(max_len = 32)]
+    #[options(max_len = 32)]
     pub collision_rule: String,
     pub style: TeamStyle,
     pub prefix: Text,
@@ -59,13 +59,13 @@ pub struct UpdateTeam {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct AddTeamEntities {
-    #[mcio(inner::max_len = 40)]
+    #[options(inner.max_len = 40)]
     pub entities: Vec<String>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct RemoveTeamEntities {
-    #[mcio(inner::max_len = 40)]
+    #[options(inner.max_len = 40)]
     pub entities: Vec<String>,
 }
 

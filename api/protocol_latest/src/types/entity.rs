@@ -43,11 +43,11 @@ impl McWrite for Metadata {
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
-#[mcio(kind = "varint")]
+#[io_repr(varint)]
 pub enum MetadataValue {
     /// type: 0
     Byte(i8),
-    VarInt(#[mcio(varint)] i32),
+    VarInt(#[options(varint = true)] i32),
     Float(f32),
     String(String),
     Text(Text),
@@ -55,16 +55,16 @@ pub enum MetadataValue {
     Slot(Slot),
     Bool(bool),
     Rotation(Vec3),
-    Position(#[mcio(compressed)] IVec3),
-    OptPosition(#[mcio(inner::compressed)] Option<IVec3>),
+    Position(#[options(compressed = true)] IVec3),
+    OptPosition(#[options(inner.compressed = true)] Option<IVec3>),
     Direction(Direction),
     OptUuid(Option<Uuid>),
-    OptBlockId(#[mcio(varint)] i32),
+    OptBlockId(#[options(varint = true)] i32),
     Nbt(nbt::Blob),
     // TODO: https://wiki.vg/Entity_metadata#Entity_Metadata_Format
     Particle(()),
     Villager(Villager),
-    OptVarInt(#[mcio(varint)] i32),
+    OptVarInt(#[options(varint = true)] i32),
     /// type: 18
     Pose(Pose),
 }
@@ -73,7 +73,7 @@ pub enum MetadataValue {
 pub struct Villager {
     pub kind: VillagerKind,
     pub profession: VillagerProfession,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub level: i32,
 }
 

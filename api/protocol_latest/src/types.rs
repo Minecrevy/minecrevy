@@ -3,6 +3,7 @@
 use std::io::{self, Read, Write};
 
 pub use glam::{DVec2, DVec3, IVec2, IVec3, Vec2, Vec3};
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use minecrevy_io_buf::{ReadMinecraftExt, WriteMinecraftExt};
@@ -79,7 +80,7 @@ impl McWrite for PreviousGameMode {
 }
 
 minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
     pub enum Difficulty {
         Peaceful = 0,
         Easy = 1,
@@ -219,13 +220,13 @@ minecrevy_io_str::u8_enum! {
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
 pub struct Statistic {
     /// The category ID.
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub category: i32,
     /// The statistic ID.
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub statistic: i32,
     /// The statistic's value.
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub value: i32,
 }
 
@@ -264,7 +265,7 @@ minecrevy_io_str::u8_enum! {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct TabCompletionMatch {
-    #[mcio(max_len = 32767)]
+    #[options(max_len = 32767)]
     pub text: String,
     pub tooltip: Option<Text>,
 }
@@ -273,7 +274,7 @@ pub type Slot = Option<SlotData>;
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct SlotData {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub item_id: i32,
     pub count: i8,
     pub data: nbt::Value,
@@ -284,7 +285,7 @@ pub struct BlockOffset(pub [i8; 3]);
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct Icon {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub kind: i32,
     pub x: i8,
     pub z: i8,
@@ -376,12 +377,12 @@ impl McWrite for TabListActions {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct AddPlayer {
-    #[mcio(max_len = 16)]
+    #[options(max_len = 16)]
     pub name: String,
     pub properties: Vec<ProfileProperty>,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub gamemode: i32,
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub ping: i32,
     pub display_name: Option<Text>,
 }
@@ -419,7 +420,7 @@ minecrevy_io_str::u8_enum! {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct Tag {
     pub name: Key,
-    #[mcio(inner::varint)]
+    #[options(inner.varint = true)]
     pub entries: Vec<i32>,
 }
 
@@ -565,7 +566,7 @@ minecrevy_io_str::varint_enum! {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct FaceEntity {
-    #[mcio(varint)]
+    #[options(varint = true)]
     pub entity_id: i32,
     pub entity_mode: FaceMode,
 }
