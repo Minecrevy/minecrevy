@@ -1,25 +1,24 @@
-use darling::ast;
-use darling::ast::{Data, Style};
-use proc_macro2::{Ident, TokenStream};
-use quote::{quote, quote_spanned};
-use syn::Member;
+use proc_macro2::{Literal, TokenStream};
+use quote::{format_ident, quote, quote_spanned};
+use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
 use syn::spanned::Spanned;
 
-use crate::common::{EnumKind, McIo, McIoField, McIoVariant};
+use crate::attr::{McIoAttrs, McIoEnum, McIoTag};
+use crate::util::{crate_ident, generate_options, iter_fields};
 
-pub fn gen_impl(input: McIo) -> TokenStream {
-    let McIo { ref ident, ref generics, data, kind } = input;
-    let (imp, ty, where_clause) = generics.split_for_impl();
+pub fn generate_write_impl(input: DeriveInput) -> TokenStream {
+    let ident = &input.ident;
+    let (gen_impl, gen_ty, gen_where) = input.generics.split_for_impl();
 
-    let ast = gen_ast(data, kind);
-    let mcwrite = crate::common::get_crate_ident(&Ident::new("McWrite", ident.span()));
+    let mcwrite = crate_ident("minecrevy_io_str", "McWrite");
+    let ast = generate_ast(&input.attrs, &input.data);
 
     quote! {
         #[automatically_derived]
-        impl #imp #mcwrite for #ident #ty #where_clause {
+        impl #gen_impl #mcwrite for #ident #gen_ty #gen_where {
             type Options = ();
 
-            fn write<W: ::std::io::Write>(&self, mut writer: W, _options: Self::Options) -> ::std::io::Result<()> {
+            fn write<W: ::std::io::Write>(&self, mut writer: W, (): Self::Options) -> ::std::io::Result<()> {
                 #ast
                 Ok(())
             }
@@ -27,110 +26,105 @@ pub fn gen_impl(input: McIo) -> TokenStream {
     }
 }
 
-fn gen_ast(data: ast::Data<McIoVariant, McIoField>, kind: Option<EnumKind>) -> TokenStream {
+fn generate_ast(attrs: &Vec<Attribute>, data: &Data) -> TokenStream {
     match data {
-        Data::Enum(variants) => {
-            let kind = kind.expect("must specify enum kind");
-
-            let arms = variants.into_iter()
-                .enumerate()
-                .map(|(idx, variant)| gen_variant_arm(variant, idx, kind));
-
-            quote! {
-                match self {
-                    #(#arms)*
-                }
-            }
-        }
-        Data::Struct(fields) => {
-            let fields = gen_struct(fields.into_iter());
-            quote! {
-                #(#fields)*
-            }
-        }
+        Data::Struct(data) => generate_struct(data),
+        Data::Enum(data) => generate_enum(attrs, data),
+        Data::Union(_) => panic!("cannot derive unions"),
     }
 }
 
-fn gen_variant_arm(variant: McIoVariant, idx: usize, kind: EnumKind) -> TokenStream {
-    assert_eq!(Style::Tuple, variant.fields.style, "only tuple variants are allowed");
-    assert_eq!(1, variant.fields.len(), "only newtype variants are allowed");
+fn generate_struct(data: &DataStruct) -> TokenStream {
+    let fields = iter_fields(&data.fields)
+        .map(|(ident, field)| generate_field(field, ident, Some(quote! { self. })));
 
-    let ident = variant.ident;
-    let field = variant.fields.into_iter().next().unwrap();
-
-    let prefix = gen_variant_prefix(idx, &ident, kind);
-    let field = gen_struct_field(field, Member::Named(Ident::new("v", ident.span())), None);
-
-    quote_spanned! { ident.span() =>
-        Self::#ident(v) => {
-            #prefix
-            #field
-        },
+    quote! {
+        #(#fields)*
     }
 }
 
-fn gen_variant_prefix(idx: usize, ident: &Ident, kind: EnumKind) -> TokenStream {
-    let mcwrite = crate::common::get_crate_ident(&Ident::new("McWrite", ident.span()));
-
-    match kind {
-        EnumKind::VarInt => {
-            let options = crate::common::get_crate_ident(&Ident::new("IntOptions", ident.span()));
-            let idx = idx as i32;
-            quote_spanned! { ident.span() =>
-                <i32 as #mcwrite>::write(&#idx, &mut writer, #options { varint: true })?;
-            }
-        }
-        EnumKind::I8 => {
-            let idx = idx as i8;
-            quote_spanned! { ident.span() =>
-                <i8 as #mcwrite>::write(&#idx, &mut writer, ())?;
-            }
-        }
-        EnumKind::U8 => {
-            let idx = idx as u8;
-            quote_spanned! { ident.span() =>
-                <u8 as #mcwrite>::write(&#idx, &mut writer, ())?;
-            }
-        }
-    }
-}
-
-fn gen_struct(fields: impl Iterator<Item=McIoField>) -> impl Iterator<Item=TokenStream> {
-    fields
-        .enumerate()
-        .map(|(idx, field)| {
-            (field.ident.clone()
-                 .map(|id: Ident| Member::Named(id))
-                 .unwrap_or_else(|| Member::Unnamed(idx.into())),
-             field)
-        })
-        .map(|(member, field)| gen_struct_field(field, member, Some(quote! { self. })))
-}
-
-fn gen_struct_field(field: McIoField, ident: Member, prefix: Option<TokenStream>) -> TokenStream {
-    let ty = field.ty;
-    let mcwrite = crate::common::get_crate_ident(&Ident::new("McWrite", ty.span()));
-
-    let option_fields = field.options.iter()
-        .map(|(path, val)| {
-            quote_spanned! { ty.span() => options.#(#path).* = #val.into(); }
-        });
-
-    let options = if option_fields.len() > 0 {
-        quote_spanned! { ty.span() =>
-            {
-                let mut options = <#ty as #mcwrite>::Options::default();
-                #(#option_fields)*
-                options
-            }
-        }
-    } else {
-        quote_spanned! { ty.span() =>
-            <#ty as #mcwrite>::Options::default()
-        }
+fn generate_enum(attrs: &Vec<Attribute>, data: &DataEnum) -> TokenStream {
+    let attrs = match McIoAttrs::parse(attrs) {
+        Ok(attrs) => attrs,
+        Err(e) => return e.into_compile_error(),
     };
 
+    let repr = match attrs.repr {
+        Some(repr) => repr,
+        None => return syn::Error::new(data.enum_token.span(), "must specify io_repr")
+            .into_compile_error(),
+    };
+
+    let variants = data.variants.iter()
+        .enumerate()
+        .map(|(idx, variant)| generate_variant(variant, idx, repr));
+
+    quote! {
+        match self {
+            #(#variants)*
+        }
+    }
+}
+
+fn generate_variant(variant: &Variant, idx: usize, repr: McIoEnum) -> TokenStream {
+    let attrs = match McIoAttrs::parse(&variant.attrs) {
+        Ok(attrs) => attrs,
+        Err(e) => return e.into_compile_error(),
+    };
+
+    let field_names = iter_fields(&variant.fields)
+        .map(|(ident, _)| match ident {
+            Member::Named(ident) => quote! { #ident },
+            Member::Unnamed(idx) => {
+                let ident = format_ident!("_{}", idx);
+                quote! { #idx: #ident }
+            }
+        });
+
+    let ident = &variant.ident;
+    let pattern = quote! {
+        Self::#ident { #(#field_names)* }
+    };
+
+    let discriminant = attrs.tag
+        .map(|McIoTag { value }| quote_spanned! { value.span() => #value })
+        .or_else(|| variant.discriminant.as_ref()
+            .map(|(_, expr)| quote_spanned! { expr.span() => #expr }))
+        .unwrap_or_else(|| {
+            let literal = Literal::usize_unsuffixed(idx);
+            quote_spanned! { variant.ident.span() => #literal }
+        });
+    let prefix = repr.as_prefix(discriminant);
+
+    let fields = iter_fields(&variant.fields)
+        .map(|(ident, field)| {
+            let ident = match ident {
+                Member::Named(ident) => Member::Named(ident),
+                Member::Unnamed(idx) => Member::Named(format_ident!("_{}", idx)),
+            };
+            generate_field(field, ident, None)
+        });
+
+    quote_spanned! { ident.span() =>
+        #pattern => {
+            #prefix
+            #(#fields)*
+        }
+    }
+}
+
+fn generate_field(field: &Field, ident: Member, this: Option<TokenStream>) -> TokenStream {
+    let attrs = match McIoAttrs::parse(&field.attrs) {
+        Ok(attrs) => attrs,
+        Err(e) => return e.into_compile_error(),
+    };
+
+    let ty = &field.ty;
+    let mcwrite = crate_ident("minecrevy_io_str", "McWrite");
+
+    let options = generate_options(ty, attrs.options.as_ref(), quote! { #mcwrite });
+
     quote_spanned! { ty.span() =>
-        <#ty as #mcwrite>::write(&#prefix #ident, &mut writer, #options)?;
+        <#ty as #mcwrite>::write(&#this #ident, &mut writer, #options)?;
     }
 }

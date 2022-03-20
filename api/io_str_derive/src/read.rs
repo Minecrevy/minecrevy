@@ -1,147 +1,112 @@
-use darling::ast;
-use darling::ast::{Data, Style};
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Literal, TokenStream};
 use quote::{quote, quote_spanned};
-use syn::{Member, spanned::Spanned};
+use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
+use syn::spanned::Spanned;
 
-use crate::common::{EnumKind, McIo, McIoField, McIoVariant};
+use crate::attr::{McIoAttrs, McIoTag};
+use crate::util::{crate_ident, generate_options, iter_fields};
 
-pub fn gen_impl(input: McIo) -> TokenStream {
-    let McIo { ref ident, ref generics, data, kind } = input;
-    let (imp, ty, where_clause) = generics.split_for_impl();
+pub fn generate_read_impl(input: DeriveInput) -> TokenStream {
+    let ident = &input.ident;
+    let (gen_impl, gen_ty, gen_where) = input.generics.split_for_impl();
 
-    let ast = gen_ast(data, kind);
-    let mcread = crate::common::get_crate_ident(&Ident::new("McRead", ident.span()));
+    let mcread = crate_ident("minecrevy_io_str", "McRead");
+    let ast = generate_ast(&input.attrs, &input.data);
 
     quote! {
         #[automatically_derived]
-        impl #imp #mcread for #ident #ty #where_clause {
+        impl #gen_impl #mcread for #ident #gen_ty #gen_where {
             type Options = ();
 
-            fn read<R: ::std::io::Read>(mut reader: R, _options: Self::Options) -> ::std::io::Result<Self> {
+            fn read<R: ::std::io::Read>(mut reader: R, (): Self::Options) -> ::std::io::Result<Self> {
                 #ast
             }
         }
     }
 }
 
-fn gen_ast(data: ast::Data<McIoVariant, McIoField>, kind: Option<EnumKind>) -> TokenStream {
+fn generate_ast(attrs: &Vec<Attribute>, data: &Data) -> TokenStream {
     match data {
-        Data::Enum(variants) => {
-            let kind = kind.expect("must specify enum kind");
+        Data::Struct(data) => generate_struct(data),
+        Data::Enum(data) => generate_enum(attrs, data),
+        Data::Union(_) => panic!("cannot derive unions"),
+    }
+}
 
-            let condition = gen_variant_condition(kind);
-            let arms = variants.into_iter()
-                .enumerate()
-                .map(|(idx, variant)| gen_variant_arm(variant, idx, kind));
+fn generate_struct(data: &DataStruct) -> TokenStream {
+    let fields = iter_fields(&data.fields)
+        .map(|(ident, field)| generate_field(field, ident));
 
-            quote! {
-                match #condition {
-                    #(#arms)*
-                    v => Err(::std::io::Error::new(::std::io::ErrorKind::InvalidData, format!("invalid discriminator: {}", v))),
-                }
-            }
-        }
-        Data::Struct(fields) => {
-            let fields = gen_struct(fields.into_iter());
-            quote! {
-                Ok(Self {
-                    #(#fields)*
-                })
-            }
+    quote! {
+        Ok(Self {
+            #(#fields)*
+        })
+    }
+}
+
+fn generate_enum(attrs: &Vec<Attribute>, data: &DataEnum) -> TokenStream {
+    let attrs = match McIoAttrs::parse(attrs) {
+        Ok(attrs) => attrs,
+        Err(e) => return e.into_compile_error(),
+    };
+
+    let condition = match attrs.repr {
+        Some(repr) => repr.as_condition(),
+        None => return syn::Error::new(data.enum_token.span(), "must specify io_repr")
+            .into_compile_error(),
+    };
+
+    let variants = data.variants.iter()
+        .enumerate()
+        .map(|(idx, variant)| generate_variant(variant, idx));
+
+    quote! {
+        match #condition {
+            #(#variants)*
+            v => Err(::std::io::Error::new(::std::io::ErrorKind::InvalidData, format!("invalid tag: {}", v))),
         }
     }
 }
 
-fn gen_variant_arm(variant: McIoVariant, idx: usize, kind: EnumKind) -> TokenStream {
-    assert_eq!(Style::Tuple, variant.fields.style, "only tuple variants are allowed");
-    assert_eq!(1, variant.fields.len(), "only newtype variants are allowed");
-
-    let ident = variant.ident;
-    let field = variant.fields.into_iter().next().unwrap();
-    let field = gen_struct_field(field, Member::Unnamed(0.into()));
-
-    let pattern = match kind {
-        EnumKind::VarInt => {
-            let idx = idx as i32;
-            quote! { #idx }
-        }
-        EnumKind::I8 => {
-            let idx = idx as i8;
-            quote! { #idx }
-        }
-        EnumKind::U8 => {
-            let idx = idx as u8;
-            quote! { #idx }
-        }
+fn generate_variant(variant: &Variant, idx: usize) -> TokenStream {
+    let attrs = match McIoAttrs::parse(&variant.attrs) {
+        Ok(attrs) => attrs,
+        Err(e) => return e.into_compile_error(),
     };
 
-    quote_spanned! { ident.span() =>
+    let pattern = attrs.tag
+        .map(|McIoTag { value }| quote_spanned! { value.span() => #value })
+        .or_else(|| variant.discriminant.as_ref()
+            .map(|(_, value)| quote_spanned! { value.span() => #value }))
+        .unwrap_or_else(|| {
+            let literal = Literal::usize_unsuffixed(idx);
+            quote_spanned! { variant.ident.span() => #literal }
+        });
+
+    let ident = &variant.ident;
+    let fields = iter_fields(&variant.fields)
+        .map(|(ident, field)| generate_field(field, ident));
+
+    quote_spanned! { variant.ident.span() =>
         #pattern => Ok(Self::#ident {
-            #field
+            #(#fields)*
         }),
     }
 }
 
-fn gen_variant_condition(kind: EnumKind) -> TokenStream {
-    let mcread = crate::common::get_crate_ident(&Ident::new("McRead", Span::call_site()));
-
-    match kind {
-        EnumKind::VarInt => {
-            let options = crate::common::get_crate_ident(&Ident::new("IntOptions", Span::call_site()));
-            quote! {
-                <i32 as #mcread>::read(&mut reader, #options { varint: true })?
-            }
-        }
-        EnumKind::I8 => {
-            quote! {
-                <i8 as #mcread>::read(&mut reader, ())?
-            }
-        }
-        EnumKind::U8 => {
-            quote! {
-                <u8 as #mcread>::read(&mut reader, ())?
-            }
-        }
-    }
-}
-
-fn gen_struct(fields: impl Iterator<Item=McIoField>) -> impl Iterator<Item=TokenStream> {
-    fields
-        .enumerate()
-        .map(|(idx, field)| {
-            (field.ident.as_ref()
-                 .map(|id: &Ident| Member::Named(id.clone()))
-                 .unwrap_or_else(|| Member::Unnamed(idx.into())),
-             field)
-        })
-        .map(|(member, field)| gen_struct_field(field, member))
-}
-
-fn gen_struct_field(field: McIoField, ident: Member) -> TokenStream {
-    let ty = &field.ty;
-    let mcread = crate::common::get_crate_ident(&Ident::new("McRead", ty.span()));
-
-    let option_fields = field.options.iter()
-        .map(|(path, val)| {
-            quote_spanned! { ty.span() => options.#(#path).* = #val.into(); }
-        });
-
-    let options = if option_fields.len() > 0 {
-        quote_spanned! { ty.span() =>
-            {
-                let mut options = <#ty as #mcread>::Options::default();
-                #(#option_fields)*
-                options
-            }
-        }
-    } else {
-        quote_spanned! { ty.span() =>
-            <#ty as #mcread>::Options::default()
-        }
+fn generate_field(field: &Field, ident: Member) -> TokenStream {
+    let attrs = match McIoAttrs::parse(&field.attrs) {
+        Ok(attrs) => attrs,
+        Err(e) => return e.into_compile_error(),
     };
+
+    let ty = &field.ty;
+    let mcread = crate_ident("minecrevy_io_str", "McRead");
+
+    let options = generate_options(ty, attrs.options.as_ref(), quote! { #mcread });
 
     quote_spanned! { ty.span() =>
         #ident: #mcread::read(&mut reader, #options)?,
     }
 }
+
