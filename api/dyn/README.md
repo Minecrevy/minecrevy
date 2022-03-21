@@ -1,4 +1,4 @@
-# Minecrevy Dyn
+# minecrevy_dyn
 
 Utilities for working with traits and trait objects.
 

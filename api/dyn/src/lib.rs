@@ -25,7 +25,7 @@ macro_rules! dyn_clone {
             }
         }
 
-        impl Clone for Box<dyn Packet> {
+        impl Clone for Box<dyn $ty> {
             fn clone(&self) -> Self {
                 self.clone_boxed()
             }
