@@ -9,8 +9,8 @@
 
 #![warn(missing_docs)]
 
-pub use self::registry::*;
 pub use self::packet::*;
+pub use self::registry::*;
 pub use self::state::*;
 
 mod registry;

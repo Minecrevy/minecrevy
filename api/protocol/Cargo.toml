@@ -9,3 +9,4 @@ edition = "2021"
 # workspace: api
 minecrevy_io_buf = { path = "../io_buf" }
 minecrevy_io_str = { path = "../io_str" }
+minecrevy_protocol_derive = { path = "../protocol_derive" }

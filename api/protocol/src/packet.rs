@@ -2,6 +2,7 @@ use std::io;
 use std::io::Cursor;
 
 use minecrevy_io_str::{McRead, McWrite};
+pub use minecrevy_protocol_derive::Packet;
 
 /// A Minecraft protocol packet sent between the client and server.
 pub trait Packet: 'static {
