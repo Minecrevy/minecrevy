@@ -1,0 +1,13 @@
+[package]
+name = "minecrevy_anvil"
+version = "0.4.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# workspace: server
+minecrevy_chunk = { path = "../../server/chunk" }
+# serialization
+byteorder = "^1.4"
+hematite-nbt = "^0.5"
