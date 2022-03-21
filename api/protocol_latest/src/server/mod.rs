@@ -1,7 +1,7 @@
 //! This module contains any packets sent by the server.
 
 use minecrevy_io_str::{McRead, McWrite};
-use minecrevy_protocol::{PacketCodec, ProtocolState};
+use minecrevy_protocol::{Packet, PacketCodec, ProtocolState};
 use minecrevy_text::Text;
 
 use crate::{client, server};
@@ -15,10 +15,8 @@ mod play;
 mod status;
 
 /// Tells the client that they are being disconnected.
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct Disconnect(pub Text);
-
-impl crate::Packet for Disconnect {}
 
 macro_rules! incoming_packets {
     ( $codec:ident in $state:expr => $( $id:expr => $packet:ty , )* ) => {

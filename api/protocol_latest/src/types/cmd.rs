@@ -228,13 +228,12 @@ impl McWrite for ArgumentParser {
     }
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum StringArgumentKind {
-        Word = 0,
-        Quotable = 1,
-        Greedy = 2,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum StringArgumentKind {
+    Word = 0,
+    Quotable = 1,
+    Greedy = 2,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]

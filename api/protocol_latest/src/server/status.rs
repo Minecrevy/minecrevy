@@ -6,13 +6,12 @@ use uuid::Uuid;
 
 use minecrevy_io_buf::WriteMinecraftExt;
 use minecrevy_io_str::{McRead, McWrite};
+use minecrevy_protocol::Packet;
 use minecrevy_text::{Color, Style, Text};
 
 /// Sends server information to the client, including player count, maximum player count, an MOTD, etc.
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct StatusResponse(pub Motd);
-
-impl crate::Packet for StatusResponse {}
 
 /// Replies to the client for latency testing.
 pub type StatusPong = crate::client::StatusPing;

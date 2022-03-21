@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use minecrevy_io_buf::{ReadMinecraftExt, WriteMinecraftExt};
-use minecrevy_io_str::{IntOptions, IVec3Options, ListOptions, McRead, McWrite, OptionOptions};
+use minecrevy_io_str::{IntOptions, IVec3Options, McRead, McWrite};
 use minecrevy_key::{Key, KeyOptions, KeyRef};
 use minecrevy_text::Text;
 
@@ -27,14 +27,13 @@ mod recipes;
 mod scoreboard;
 mod world;
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum GameMode {
-        Survival = 0,
-        Creative = 1,
-        Adventure = 2,
-        Spectator = 3,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(u8)]
+pub enum GameMode {
+    Survival = 0,
+    Creative = 1,
+    Adventure = 2,
+    Spectator = 3,
 }
 
 impl Default for GameMode {
@@ -79,14 +78,13 @@ impl McWrite for PreviousGameMode {
     }
 }
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Serialize, Deserialize)]
-    pub enum Difficulty {
-        Peaceful = 0,
-        Easy = 1,
-        Normal = 2,
-        Hard = 3,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite, Serialize, Deserialize)]
+#[io_repr(u8)]
+pub enum Difficulty {
+    Peaceful = 0,
+    Easy = 1,
+    Normal = 2,
+    Hard = 3,
 }
 
 impl Default for Difficulty {
@@ -136,26 +134,24 @@ impl From<Angle> for f32 {
     }
 }
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum CardinalDirection {
-        South = 0,
-        West = 1,
-        North = 2,
-        East = 3,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(u8)]
+pub enum CardinalDirection {
+    South = 0,
+    West = 1,
+    North = 2,
+    East = 3,
 }
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum Direction {
-        Down = 0,
-        Up = 1,
-        North = 2,
-        South = 3,
-        West = 4,
-        East = 5,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(u8)]
+pub enum Direction {
+    Down = 0,
+    Up = 1,
+    North = 2,
+    South = 3,
+    West = 4,
+    East = 5,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
@@ -205,16 +201,15 @@ impl McWrite for SignalDestination {
     }
 }
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum Animation {
-        SwingMainArm = 0,
-        TakeDamage = 1,
-        LeaveBed = 2,
-        SwingOffHand = 3,
-        CriticalEffect = 4,
-        MagicCriticalEffect = 5,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(u8)]
+pub enum Animation {
+    SwingMainArm = 0,
+    TakeDamage = 1,
+    LeaveBed = 2,
+    SwingOffHand = 3,
+    CriticalEffect = 4,
+    MagicCriticalEffect = 5,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
@@ -230,37 +225,34 @@ pub struct Statistic {
     pub value: i32,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum BossBarColor {
-        Pink = 0,
-        Blue = 1,
-        Red = 2,
-        Green = 3,
-        Yellow = 4,
-        Purple = 5,
-        White = 6,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum BossBarColor {
+    Pink = 0,
+    Blue = 1,
+    Red = 2,
+    Green = 3,
+    Yellow = 4,
+    Purple = 5,
+    White = 6,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum BossBarStyle {
-        Solid = 0,
-        Notched6 = 1,
-        Notched10 = 2,
-        Notched12 = 3,
-        Notched20 = 4,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum BossBarStyle {
+    Solid = 0,
+    Notched6 = 1,
+    Notched10 = 2,
+    Notched12 = 3,
+    Notched20 = 4,
 }
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum MessageKind {
-        Chat = 0,
-        System = 1,
-        ActionBar = 2,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(u8)]
+pub enum MessageKind {
+    Chat = 0,
+    System = 1,
+    ActionBar = 2,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
@@ -307,72 +299,24 @@ pub struct Trade {
     pub demand: i32,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum TabListActionKind {
-        AddPlayer = 0,
-        SetGameMode = 1,
-        SetPing = 2,
-        SetDisplayName = 3,
-        RemovePlayer = 4,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum TabListActionKind {
+    AddPlayer = 0,
+    SetGameMode = 1,
+    SetPing = 2,
+    SetDisplayName = 3,
+    RemovePlayer = 4,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[io_repr(varint)]
 pub enum TabListActions {
     AddPlayer(Vec<(Uuid, AddPlayer)>),
     SetGameMode(Vec<(Uuid, i32)>),
     SetPing(Vec<(Uuid, i32)>),
     SetDisplayName(Vec<(Uuid, Option<Text>)>),
     RemovePlayer(Vec<Uuid>),
-}
-
-impl McRead for TabListActions {
-    type Options = ();
-
-    fn read<R: Read>(mut reader: R, (): Self::Options) -> io::Result<Self> {
-        match reader.read_var_i32()? {
-            0 => Ok(Self::AddPlayer(Vec::read(reader, ListOptions::varint(((), ())))?)),
-            1 => Ok(Self::SetGameMode(Vec::read(reader, ListOptions::varint(((), IntOptions::varint())))?)),
-            2 => Ok(Self::SetPing(Vec::read(reader, ListOptions::varint(((), IntOptions::varint())))?)),
-            3 => Ok(Self::SetDisplayName(Vec::read(reader, ListOptions::varint(((), OptionOptions::default())))?)),
-            4 => Ok(Self::RemovePlayer(Vec::read(reader, ListOptions::varint(()))?)),
-            kind => Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("unsupported tablist action type: {}", kind),
-            ))
-        }
-    }
-}
-
-impl McWrite for TabListActions {
-    type Options = ();
-
-    fn write<W: Write>(&self, mut writer: W, (): Self::Options) -> io::Result<()> {
-        match self {
-            TabListActions::AddPlayer(v) => {
-                writer.write_var_i32(0)?;
-                v.write(writer, ListOptions::varint(((), ())))?;
-            }
-            TabListActions::SetGameMode(v) => {
-                writer.write_var_i32(1)?;
-                v.write(writer, ListOptions::varint(((), IntOptions::varint())))?;
-            }
-            TabListActions::SetPing(v) => {
-                writer.write_var_i32(2)?;
-                v.write(writer, ListOptions::varint(((), IntOptions::varint())))?;
-            }
-            TabListActions::SetDisplayName(v) => {
-                writer.write_var_i32(3)?;
-                v.write(writer, ListOptions::varint(((), OptionOptions::default())))?;
-            }
-            TabListActions::RemovePlayer(v) => {
-                writer.write_var_i32(4)?;
-                v.write(writer, ListOptions::varint(()))?;
-            }
-        }
-        Ok(())
-    }
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
@@ -408,13 +352,12 @@ pub struct EntityAttributeModifier {
     pub operation: EntityAttributeModifierOperation,
 }
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum EntityAttributeModifierOperation {
-        AddAmount = 0,
-        AddPercent = 1,
-        MultiplyPercent = 2,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(u8)]
+pub enum EntityAttributeModifierOperation {
+    AddAmount = 0,
+    AddPercent = 1,
+    MultiplyPercent = 2,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
@@ -424,144 +367,131 @@ pub struct Tag {
     pub entries: Vec<i32>,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum ClientStatusAction {
-        Respawn = 0,
-        RequestStats = 1,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum ClientStatusAction {
+    Respawn = 0,
+    RequestStats = 1,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum EntityInteractionKind {
-        Interact = 0,
-        Attack = 1,
-        InteractAt = 2,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum EntityInteractionKind {
+    Interact = 0,
+    Attack = 1,
+    InteractAt = 2,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum BlockDigStatus {
-        Started = 0,
-        Cancelled = 1,
-        Finished = 2,
-        DropStack = 3,
-        Drop = 4,
-        UseItem = 5,
-        SwapItem = 6,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum BlockDigStatus {
+    Started = 0,
+    Cancelled = 1,
+    Finished = 2,
+    DropStack = 3,
+    Drop = 4,
+    UseItem = 5,
+    SwapItem = 6,
 }
 
-minecrevy_io_str::u8_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum Face {
-        Bottom = 0,
-        Top = 1,
-        North = 2,
-        South = 3,
-        West = 4,
-        East = 5,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(u8)]
+pub enum Face {
+    Bottom = 0,
+    Top = 1,
+    North = 2,
+    South = 3,
+    West = 4,
+    East = 5,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum EntityActionKind {
-        SneakStart = 0,
-        SneakStop = 1,
-        BedLeave = 2,
-        SprintStart = 3,
-        SprintStop = 4,
-        HorseJumpStart = 5,
-        HorseJumpStop = 6,
-        HorseInventoryOpen = 7,
-        ElytraFlightStart = 8,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum EntityActionKind {
+    SneakStart = 0,
+    SneakStop = 1,
+    BedLeave = 2,
+    SprintStart = 3,
+    SprintStop = 4,
+    HorseJumpStart = 5,
+    HorseJumpStop = 6,
+    HorseInventoryOpen = 7,
+    ElytraFlightStart = 8,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum RecipeBookKind {
-        Crafting = 0,
-        Furnace = 1,
-        BlastFurnace = 2,
-        Smoker = 3,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum RecipeBookKind {
+    Crafting = 0,
+    Furnace = 1,
+    BlastFurnace = 2,
+    Smoker = 3,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum ResourcePackResult {
-        Loaded = 0,
-        Declined = 1,
-        Failed = 2,
-        Accepted = 3,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum ResourcePackResult {
+    Loaded = 0,
+    Declined = 1,
+    Failed = 2,
+    Accepted = 3,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum CommandBlockMode {
-        Sequence = 0,
-        Auto = 1,
-        Redstone = 2,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum CommandBlockMode {
+    Sequence = 0,
+    Auto = 1,
+    Redstone = 2,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum StructureBlockAction {
-        UpdateData = 0,
-        Save = 1,
-        Load = 2,
-        DetectSize = 3,
-    }
-}
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum StructureBlockMode {
-        Save = 0,
-        Load = 1,
-        Corner = 2,
-        Data = 3,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum StructureBlockAction {
+    UpdateData = 0,
+    Save = 1,
+    Load = 2,
+    DetectSize = 3,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum StructureBlockMirror {
-        None = 0,
-        LeftRight = 1,
-        FrontBack = 2,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum StructureBlockMode {
+    Save = 0,
+    Load = 1,
+    Corner = 2,
+    Data = 3,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum StructureBlockRotation {
-        None = 0,
-        Clockwise90 = 1,
-        Clockwise180 = 2,
-        CounterClockwise90 = 3,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum StructureBlockMirror {
+    None = 0,
+    LeftRight = 1,
+    FrontBack = 2,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum Hand {
-        Main = 0,
-        Off = 1,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum StructureBlockRotation {
+    None = 0,
+    Clockwise90 = 1,
+    Clockwise180 = 2,
+    CounterClockwise90 = 3,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum FaceMode {
-        Feet = 0,
-        Eyes = 1,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum Hand {
+    Main = 0,
+    Off = 1,
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum FaceMode {
+    Feet = 0,
+    Eyes = 1,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]

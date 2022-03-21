@@ -4,18 +4,17 @@ use uuid::Uuid;
 
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_key::Key;
+use minecrevy_protocol::Packet;
 
 use crate::types::*;
 
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct TeleportConfirm {
     #[options(varint = true)]
     pub teleport_id: i32,
 }
 
-impl crate::Packet for TeleportConfirm {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct NBTQueryBlock {
     #[options(varint = true)]
     pub transaction_id: i32,
@@ -23,31 +22,23 @@ pub struct NBTQueryBlock {
     pub position: IVec3,
 }
 
-impl crate::Packet for NBTQueryBlock {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct DifficultyUpdate {
     pub difficulty: Difficulty,
 }
 
-impl crate::Packet for DifficultyUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ChatMessage {
     #[options(max_len = 256)]
     pub message: String,
 }
 
-impl crate::Packet for ChatMessage {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ClientStatusUpdate {
     pub action: ClientStatusAction,
 }
 
-impl crate::Packet for ClientStatusUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ClientSettings {
     #[options(max_len = 16)]
     pub locale: String,
@@ -62,9 +53,7 @@ pub struct ClientSettings {
     pub allow_server_listings: bool,
 }
 
-impl crate::Packet for ClientSettings {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct TabCompletion {
     #[options(varint = true)]
     pub transaction_id: i32,
@@ -72,17 +61,13 @@ pub struct TabCompletion {
     pub text: String,
 }
 
-impl crate::Packet for TabCompletion {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ClickWindowButton {
     pub window_id: i8,
     pub button_id: i8,
 }
 
-impl crate::Packet for ClickWindowButton {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ClickWindowSlot {
     pub window_id: u8,
     #[options(varint = true)]
@@ -95,16 +80,12 @@ pub struct ClickWindowSlot {
     pub clicked: Slot,
 }
 
-impl crate::Packet for ClickWindowSlot {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct CloseWindow {
     pub window_id: u8,
 }
 
-impl crate::Packet for CloseWindow {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PluginMessage {
     pub channel: Key,
     #[options(length = "remaining")]
@@ -120,18 +101,14 @@ impl PluginMessage {
     }
 }
 
-impl crate::Packet for PluginMessage {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BookEdit {
     pub hand: Hand,
     pub pages: Vec<String>,
     pub title: Option<String>,
 }
 
-impl crate::Packet for BookEdit {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct NBTQueryEntity {
     #[options(varint = true)]
     pub transaction_id: i32,
@@ -139,9 +116,7 @@ pub struct NBTQueryEntity {
     pub entity_id: i32,
 }
 
-impl crate::Packet for NBTQueryEntity {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct EntityInteraction {
     #[options(varint = true)]
     pub entity_id: i32,
@@ -149,9 +124,7 @@ pub struct EntityInteraction {
     // TODO: other fields have weird Option<T> semantics
 }
 
-impl crate::Packet for EntityInteraction {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct StructureGeneration {
     #[options(compressed = true)]
     pub position: IVec3,
@@ -160,26 +133,20 @@ pub struct StructureGeneration {
     pub keep_jigsaws: bool,
 }
 
-impl crate::Packet for StructureGeneration {}
-
 pub type KeepAlive = crate::server::KeepAlive;
 
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct LockDifficulty {
     pub locked: bool,
 }
 
-impl crate::Packet for LockDifficulty {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerPosition {
     pub position: DVec3,
     pub ground: bool,
 }
 
-impl crate::Packet for PlayerPosition {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerPositionAndRotation {
     pub position: DVec3,
     pub yaw: f32,
@@ -187,75 +154,57 @@ pub struct PlayerPositionAndRotation {
     pub ground: bool,
 }
 
-impl crate::Packet for PlayerPositionAndRotation {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerRotation {
     pub yaw: f32,
     pub pitch: f32,
     pub ground: bool,
 }
 
-impl crate::Packet for PlayerRotation {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerGrounded {
     pub ground: bool,
 }
 
-impl crate::Packet for PlayerGrounded {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct VehicleMovement {
     pub position: DVec3,
     pub yaw: f32,
     pub pitch: f32,
 }
 
-impl crate::Packet for VehicleMovement {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BoatSteer {
     pub left_paddle_turn: bool,
     pub right_paddle_turn: bool,
 }
 
-impl crate::Packet for BoatSteer {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PickItem {
     #[options(varint = true)]
     pub slot: i32,
 }
 
-impl crate::Packet for PickItem {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct CraftRequest {
     pub window_id: i8,
     pub recipe: Key,
     pub make_all: bool,
 }
 
-impl crate::Packet for CraftRequest {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerAbilitiesUpdate {
     pub abilities: BitFlags<PlayerAbilities>,
 }
 
-impl crate::Packet for PlayerAbilitiesUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BlockDig {
     pub status: BlockDigStatus,
     pub position: IVec3,
     pub face: Face,
 }
 
-impl crate::Packet for BlockDig {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct EntityAction {
     #[options(varint = true)]
     pub entity_id: i32,
@@ -264,65 +213,50 @@ pub struct EntityAction {
     pub jump_boost: i32,
 }
 
-impl crate::Packet for EntityAction {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct VehicleSteer {
     pub sideways: f32,
     pub forward: f32,
     pub flags: u8,
 }
 
-impl crate::Packet for VehicleSteer {}
-
 pub type Pong = crate::server::Ping;
 
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct RecipeBookUpdate {
     pub kind: RecipeBookKind,
     pub open: bool,
     pub filter: bool,
 }
 
-impl crate::Packet for RecipeBookUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct DisplayedRecipe(pub Key);
 
-impl crate::Packet for DisplayedRecipe {}
 
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ItemName {
     pub name: String,
 }
 
-impl crate::Packet for ItemName {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ResourcePackResponse {
     pub result: ResourcePackResult,
 }
 
-impl crate::Packet for ResourcePackResponse {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct DisplayedAdvancementTab {
     #[options(varint = true)]
     pub action: i32,
     // pub tab_id: Option<Key> // TODO: weird Option<T> semantics
 }
 
-impl crate::Packet for DisplayedAdvancementTab {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct TradeSelection {
     #[options(varint = true)]
     pub slot: i32,
 }
 
-impl crate::Packet for TradeSelection {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BeaconEffectUpdate {
     #[options(varint = true)]
     pub primary: i32,
@@ -330,16 +264,12 @@ pub struct BeaconEffectUpdate {
     pub secondary: i32,
 }
 
-impl crate::Packet for BeaconEffectUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct HeldItemChange {
     pub slot: i16, // mojang why is this different from serverside???
 }
 
-impl crate::Packet for HeldItemChange {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct CommandBlockUpdate {
     #[options(compressed = true)]
     pub position: IVec3,
@@ -348,9 +278,7 @@ pub struct CommandBlockUpdate {
     pub flags: i8,
 }
 
-impl crate::Packet for CommandBlockUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct CommandBlockMinecartUpdate {
     #[options(varint = true)]
     pub entity_id: i32,
@@ -358,17 +286,13 @@ pub struct CommandBlockMinecartUpdate {
     pub track_output: bool,
 }
 
-impl crate::Packet for CommandBlockMinecartUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct CreativeInventoryUpdate {
     pub slot: i16,
     pub clicked: Slot,
 }
 
-impl crate::Packet for CreativeInventoryUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct JigsawBlockUpdate {
     #[options(compressed = true)]
     pub position: IVec3,
@@ -379,9 +303,7 @@ pub struct JigsawBlockUpdate {
     pub joint_type: String,
 }
 
-impl crate::Packet for JigsawBlockUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct StructureBlockUpdate {
     #[options(compressed = true)]
     pub position: IVec3,
@@ -399,9 +321,7 @@ pub struct StructureBlockUpdate {
     pub flags: i8,
 }
 
-impl crate::Packet for StructureBlockUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct SignUpdate {
     #[options(compressed = true)]
     pub position: IVec3,
@@ -409,23 +329,17 @@ pub struct SignUpdate {
     pub lines: [String; 4],
 }
 
-impl crate::Packet for SignUpdate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerAnimation {
     pub hand: Hand,
 }
 
-impl crate::Packet for PlayerAnimation {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct Spectate {
     pub target_player: Uuid,
 }
 
-impl crate::Packet for Spectate {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerBlockPlacement {
     pub hand: Hand,
     #[options(compressed = true)]
@@ -435,11 +349,7 @@ pub struct PlayerBlockPlacement {
     pub inside_block: bool,
 }
 
-impl crate::Packet for PlayerBlockPlacement {}
-
-#[derive(Clone, PartialEq, Debug, McRead, McWrite)]
+#[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ItemUse {
     pub hand: Hand,
 }
-
-impl crate::Packet for ItemUse {}

@@ -77,50 +77,47 @@ pub struct Villager {
     pub level: i32,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum VillagerKind {
-        Desert = 0,
-        Jungle = 1,
-        Plains = 2,
-        Savanna = 3,
-        Snow = 4,
-        Swamp = 5,
-        Taiga = 6,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum VillagerKind {
+    Desert = 0,
+    Jungle = 1,
+    Plains = 2,
+    Savanna = 3,
+    Snow = 4,
+    Swamp = 5,
+    Taiga = 6,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum VillagerProfession {
-        None = 0,
-        Armorer = 1,
-        Butcher = 2,
-        Cartographer = 3,
-        Cleric = 4,
-        Farmer = 5,
-        Fisherman = 6,
-        Fletcher = 7,
-        Leatherworker = 8,
-        Librarian = 9,
-        Mason = 10,
-        Nitwit = 11,
-        Shepherd = 12,
-        Toolsmith = 13,
-        Weaponsmith = 14,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum VillagerProfession {
+    None = 0,
+    Armorer = 1,
+    Butcher = 2,
+    Cartographer = 3,
+    Cleric = 4,
+    Farmer = 5,
+    Fisherman = 6,
+    Fletcher = 7,
+    Leatherworker = 8,
+    Librarian = 9,
+    Mason = 10,
+    Nitwit = 11,
+    Shepherd = 12,
+    Toolsmith = 13,
+    Weaponsmith = 14,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum Pose {
-        Standing = 0,
-        FallFlying = 1,
-        Sleeping = 2,
-        Swimming = 3,
-        SpinAttack = 4,
-        Crouching = 5,
-        LongJumping = 6,
-        Dying = 7,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum Pose {
+    Standing = 0,
+    FallFlying = 1,
+    Sleeping = 2,
+    Swimming = 3,
+    SpinAttack = 4,
+    Crouching = 5,
+    LongJumping = 6,
+    Dying = 7,
 }

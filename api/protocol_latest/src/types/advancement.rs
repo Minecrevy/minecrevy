@@ -26,13 +26,12 @@ pub struct AdvancementDisplay {
     // pub y: f32,
 }
 
-minecrevy_io_str::varint_enum! {
-    #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
-    pub enum AdvancementFrameKind {
-        Task = 0,
-        Challenge = 1,
-        Goal = 2,
-    }
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
+#[io_repr(varint)]
+pub enum AdvancementFrameKind {
+    Task = 0,
+    Challenge = 1,
+    Goal = 2,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
