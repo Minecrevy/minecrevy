@@ -35,7 +35,7 @@ pub enum KeyError {
 /// Normally, the namespace is lowercased and likewise, so is the path.
 ///
 /// **Note:** the [`minecraft`][Key::minecraft] and [`minecrevy`][Key::minecrevy] constructors should only be used by
-/// the implementation for creating new keys and usage by plugins **may** result in a crash condition.
+/// the implementation for creating new keys and usage by servers **may** result in a crash condition.
 #[derive(Clone, Eq, PartialEq, Ord, PartialOrd, Debug, Hash)]
 pub struct Key {
     namespace: Cow<'static, str>,
