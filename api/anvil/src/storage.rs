@@ -30,6 +30,13 @@ impl AnvilStorage {
         &self.folder
     }
 
+    /// Returns `true` if the chunk at the given [`chunk position`][`ChunkPos`] exists.
+    pub fn has_chunk(&mut self, pos: ChunkPos) -> bool {
+        self.files.get_mut(&RegionPos::from(pos))
+            .map(|file| file.has_chunk(pos))
+            .unwrap_or(false)
+    }
+
     /// Loads the [`RawChunk`] at the given [`chunk position`][`ChunkPos`].
     pub fn load_chunk(&mut self, pos: ChunkPos) -> io::Result<Option<RawChunk>> {
         let file = self.load(RegionPos::from(pos))?;

@@ -26,6 +26,12 @@ impl AnvilFile {
         })
     }
 
+    /// Returns `true` if the chunk at the given [`chunk position`][`ChunkPos`] exists.
+    #[inline]
+    pub fn has_chunk(&mut self, pos: ChunkPos) -> bool {
+        self.io.has_chunk(pos)
+    }
+
     /// Reads the [`RawChunk`] at the given [`chunk position`][`ChunkPos`].
     #[inline]
     pub fn read_chunk(&mut self, pos: ChunkPos) -> io::Result<Option<RawChunk>> {

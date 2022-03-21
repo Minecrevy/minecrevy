@@ -24,6 +24,15 @@ impl<F: Read + Seek + Write> AnvilIo<F> {
         Self { file }
     }
 
+    /// Returns `true` if the chunk at the given [`chunk position`][`ChunkPos`] exists.
+    pub fn has_chunk(&mut self, pos: ChunkPos) -> bool {
+        let pos = LocalChunkPos::from(pos);
+
+        self.sector_ptr_table().read(pos)
+            .map(|v| v.is_some())
+            .unwrap_or(false)
+    }
+
     /// Reads the [`RawChunk`] at the given [`chunk position`][`ChunkPos`].
     pub fn read_chunk(&mut self, pos: ChunkPos) -> io::Result<Option<RawChunk>> {
         let pos = LocalChunkPos::from(pos);
