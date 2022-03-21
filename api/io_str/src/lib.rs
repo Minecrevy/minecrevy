@@ -40,7 +40,6 @@ pub use self::bitset::*;
 pub use self::enumflags2::*;
 #[cfg(feature = "glam")]
 pub use self::glam::*;
-pub use self::macros::*;
 #[cfg(feature = "nbt")]
 pub use self::nbt::*;
 pub use self::options::*;
@@ -52,7 +51,6 @@ mod bitset;
 mod enumflags2;
 #[cfg(feature = "glam")]
 mod glam;
-mod macros;
 #[cfg(feature = "nbt")]
 mod nbt;
 mod options;
