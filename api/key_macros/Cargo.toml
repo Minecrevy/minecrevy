@@ -1,0 +1,15 @@
+[package]
+name = "minecrevy_key_macros"
+version = "0.5.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "(Proc-)Macros for minecrevy_key"
+repository = "https://github.com/ItsDoot/minecrevy/"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "^1.0"
+quote = "^1.0"
+syn = "^1.0"

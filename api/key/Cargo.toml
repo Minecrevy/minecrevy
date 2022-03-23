@@ -1,6 +1,6 @@
 [package]
 name = "minecrevy_key"
-version = "0.3.0"
+version = "0.5.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A library to parse Minecraft resource keys."
@@ -12,9 +12,12 @@ readme = "README.md"
 default = ["minecrevy_io_str", "serde"]
 
 [dependencies]
-# workspace
+# macros
+minecrevy_key_macros = { path = "../key_macros" }
+# workspace: api
 minecrevy_io_str = { path = "../io_str", optional = true }
 # serialization
 serde = { version = "^1.0", optional = true }
 # utils
 thiserror = "^1.0"
+flexstr = "^0.9"
