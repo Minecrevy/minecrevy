@@ -35,27 +35,41 @@
 #![feature(maybe_uninit_array_assume_init)]
 #![warn(missing_docs)]
 
+use std::io::{self, Read, Write};
+
+pub use minecrevy_io_str_derive::{McRead, McWrite};
+
 pub use self::bitset::*;
-#[cfg(feature = "enumflags2")]
-pub use self::enumflags2::*;
-#[cfg(feature = "glam")]
-pub use self::glam::*;
-#[cfg(feature = "nbt")]
-pub use self::nbt::*;
+pub use self::impls::*;
 pub use self::options::*;
-pub use self::read::*;
-pub use self::write::*;
 
 mod bitset;
-#[cfg(feature = "enumflags2")]
-mod enumflags2;
-#[cfg(feature = "glam")]
-mod glam;
-#[cfg(feature = "nbt")]
-mod nbt;
+mod impls;
 mod options;
-mod read;
-mod write;
 
 #[cfg(test)]
 mod test;
+
+/// The `McRead` trait allows for constructing data types from bytes.
+///
+/// Implementors of the `McRead` trait are typically packets or primitive data types.
+pub trait McRead: Sized {
+    /// The type of options available to configure the read operation.
+    type Options: Clone + Default;
+
+    /// Returns a value constructed from a series of bytes received from the specified reader,
+    /// optionally configured via the specified options.
+    fn read<R: Read>(reader: R, options: Self::Options) -> io::Result<Self>;
+}
+
+/// The `McWrite` trait allows for converting data types into bytes.
+///
+/// Implementors of the `McWrite` trait are typically packets or primitive data types.
+pub trait McWrite: Sized {
+    /// The type of options available to configure the write operation.
+    type Options: Clone + Default;
+
+    /// Writes this value as a series of bytes to the specified writer,
+    /// optionally configured via the specified options.
+    fn write<W: Write>(&self, writer: W, options: Self::Options) -> io::Result<()>;
+}
