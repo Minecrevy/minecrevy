@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 /// Uniquely identifies a protocol connection, usually for servers.
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
 pub struct SocketId(SocketAddr, u32);
 
 impl SocketId {
@@ -14,8 +15,15 @@ impl SocketId {
     }
 
     /// Returns the associated [`SocketAddr`].
+    #[inline]
     pub fn addr(&self) -> SocketAddr {
         self.0
+    }
+
+    /// Returns the incremental unique ID.
+    #[inline]
+    pub fn id(&self) -> u32 {
+        self.1
     }
 }
 

@@ -1,6 +1,7 @@
-use std::{fmt, io};
 use std::net::SocketAddr;
+use std::{fmt, io};
 
+use crate::SocketId;
 use flume::Sender;
 use tokio::net::{TcpListener, TcpStream, ToSocketAddrs};
 use tokio::runtime::{Handle, Runtime};
@@ -16,12 +17,7 @@ pub enum ServerEvent {
     /// Sent when a new client connection is received.
     Accept(TcpStream, SocketAddr),
     /// Sent when a client connection has closed.
-    Disconnect(
-        #[cfg(feature = "bevy")]
-        bevy::prelude::Entity,
-        #[cfg(not(feature = "bevy"))]
-        SocketAddr,
-    ),
+    Disconnect(SocketId),
     /// Sent when the server has stopped accepting connections.
     Close,
 }
@@ -46,6 +42,7 @@ impl Server {
     }
 
     /// Returns a [Handle] to the tokio runtime managed by this client.
+    #[inline]
     pub fn runtime(&self) -> &Handle {
         self.runtime.handle()
     }
@@ -68,13 +65,16 @@ impl Server {
             listener.abort();
 
             // Send a disconnect event to ourselves so calling stop() doesn't have to be handled manually
-            self.events.send.try_send(ServerEvent::Close)
+            self.events
+                .send
+                .try_send(ServerEvent::Close)
                 .expect("failed to send server event");
         }
     }
 
     /// Returns an iterator of all incoming [ServerEvent]s.
-    pub fn events(&self) -> impl Iterator<Item=ServerEvent> + '_ {
+    #[inline]
+    pub fn events(&self) -> impl Iterator<Item = ServerEvent> + '_ {
         self.events.recv.try_iter()
     }
 }
@@ -89,21 +89,29 @@ impl Server {
         let listener = match TcpListener::bind(address).await {
             Ok(l) => l,
             Err(e) => {
-                events.send_async(ServerEvent::Bind(Err(e)))
-                    .await.expect(EVENT_FAIL);
+                events
+                    .send_async(ServerEvent::Bind(Err(e)))
+                    .await
+                    .expect(EVENT_FAIL);
                 return;
             }
         };
 
-        events.send_async(ServerEvent::Bind(listener.local_addr()))
-            .await.expect(EVENT_FAIL);
+        events
+            .send_async(ServerEvent::Bind(listener.local_addr()))
+            .await
+            .expect(EVENT_FAIL);
 
         while let Ok((stream, addr)) = listener.accept().await {
-            events.send_async(ServerEvent::Accept(stream, addr))
-                .await.expect(EVENT_FAIL);
+            events
+                .send_async(ServerEvent::Accept(stream, addr))
+                .await
+                .expect(EVENT_FAIL);
         }
 
-        events.send_async(ServerEvent::Close)
-            .await.expect(EVENT_FAIL);
+        events
+            .send_async(ServerEvent::Close)
+            .await
+            .expect(EVENT_FAIL);
     }
 }
