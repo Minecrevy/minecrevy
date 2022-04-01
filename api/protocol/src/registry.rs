@@ -5,6 +5,7 @@ use crate::{Packet, ProtocolState};
 
 /// A dual-[`PacketRegistry`] wrapper for bi-directional registration.
 #[derive(Clone, Debug, Default)]
+#[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
 pub struct PacketCodec {
     /// The [`PacketRegistry`] for inbound packets.
     pub incoming: PacketRegistry,
