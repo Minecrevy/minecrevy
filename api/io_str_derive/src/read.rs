@@ -1,7 +1,7 @@
 use proc_macro2::{Literal, TokenStream};
 use quote::{quote, quote_spanned};
-use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
 use syn::spanned::Spanned;
+use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
 
 use crate::attr::{McIoAttrs, McIoTag};
 use crate::util::{crate_ident, generate_options, iter_fields};
@@ -34,8 +34,7 @@ fn generate_ast(attrs: &Vec<Attribute>, data: &Data) -> TokenStream {
 }
 
 fn generate_struct(data: &DataStruct) -> TokenStream {
-    let fields = iter_fields(&data.fields)
-        .map(|(ident, field)| generate_field(field, ident));
+    let fields = iter_fields(&data.fields).map(|(ident, field)| generate_field(field, ident));
 
     quote! {
         Ok(Self {
@@ -50,13 +49,22 @@ fn generate_enum(attrs: &Vec<Attribute>, data: &DataEnum) -> TokenStream {
         Err(e) => return e.into_compile_error(),
     };
 
-    let condition = match attrs.repr {
-        Some(repr) => repr.as_condition(),
-        None => return syn::Error::new(data.enum_token.span(), "must specify io_repr")
-            .into_compile_error(),
+    let repr = match attrs.repr {
+        Some(repr) => repr,
+        None => {
+            return syn::Error::new(
+                data.enum_token.span(),
+                "must specify #[io_repr(<type>)] for enums",
+            )
+            .into_compile_error()
+        }
     };
 
-    let variants = data.variants.iter()
+    let condition = repr.as_condition();
+
+    let variants = data
+        .variants
+        .iter()
         .enumerate()
         .map(|(idx, variant)| generate_variant(variant, idx));
 
@@ -74,18 +82,22 @@ fn generate_variant(variant: &Variant, idx: usize) -> TokenStream {
         Err(e) => return e.into_compile_error(),
     };
 
-    let pattern = attrs.tag
+    let pattern = attrs
+        .tag
         .map(|McIoTag { value }| quote_spanned! { value.span() => #value })
-        .or_else(|| variant.discriminant.as_ref()
-            .map(|(_, value)| quote_spanned! { value.span() => #value }))
+        .or_else(|| {
+            variant
+                .discriminant
+                .as_ref()
+                .map(|(_, value)| quote_spanned! { value.span() => #value })
+        })
         .unwrap_or_else(|| {
             let literal = Literal::usize_unsuffixed(idx);
             quote_spanned! { variant.ident.span() => #literal }
         });
 
     let ident = &variant.ident;
-    let fields = iter_fields(&variant.fields)
-        .map(|(ident, field)| generate_field(field, ident));
+    let fields = iter_fields(&variant.fields).map(|(ident, field)| generate_field(field, ident));
 
     quote_spanned! { variant.ident.span() =>
         #pattern => Ok(Self::#ident {
@@ -109,4 +121,3 @@ fn generate_field(field: &Field, ident: Member) -> TokenStream {
         #ident: #mcread::read(&mut reader, #options)?,
     }
 }
-

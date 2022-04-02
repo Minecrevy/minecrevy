@@ -1,7 +1,7 @@
 use proc_macro2::{Literal, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
-use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
 use syn::spanned::Spanned;
+use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
 
 use crate::attr::{McIoAttrs, McIoEnum, McIoTag};
 use crate::util::{crate_ident, generate_options, iter_fields};
@@ -51,13 +51,17 @@ fn generate_enum(attrs: &Vec<Attribute>, data: &DataEnum) -> TokenStream {
 
     let repr = match attrs.repr {
         Some(repr) => repr,
-        None => return syn::Error::new(data.enum_token.span(), "must specify io_repr")
-            .into_compile_error(),
+        None => {
+            return syn::Error::new(data.enum_token.span(), "must specify io_repr")
+                .into_compile_error()
+        }
     };
 
-    let variants = data.variants.iter()
+    let variants = data
+        .variants
+        .iter()
         .enumerate()
-        .map(|(idx, variant)| generate_variant(variant, idx, repr));
+        .map(|(idx, variant)| generate_variant(repr, variant, idx));
 
     quote! {
         match self {
@@ -66,44 +70,47 @@ fn generate_enum(attrs: &Vec<Attribute>, data: &DataEnum) -> TokenStream {
     }
 }
 
-fn generate_variant(variant: &Variant, idx: usize, repr: McIoEnum) -> TokenStream {
+fn generate_variant(repr: McIoEnum, variant: &Variant, idx: usize) -> TokenStream {
     let attrs = match McIoAttrs::parse(&variant.attrs) {
         Ok(attrs) => attrs,
         Err(e) => return e.into_compile_error(),
     };
 
-    let field_names = iter_fields(&variant.fields)
-        .map(|(ident, _)| match ident {
-            Member::Named(ident) => quote! { #ident },
-            Member::Unnamed(idx) => {
-                let ident = format_ident!("_{}", idx);
-                quote! { #idx: #ident }
-            }
-        });
+    let field_names = iter_fields(&variant.fields).map(|(ident, _)| match ident {
+        Member::Named(ident) => quote! { #ident },
+        Member::Unnamed(idx) => {
+            let ident = format_ident!("_{}", idx);
+            quote! { #idx: #ident }
+        }
+    });
 
     let ident = &variant.ident;
     let pattern = quote! {
         Self::#ident { #(#field_names)* }
     };
 
-    let discriminant = attrs.tag
+    let discriminant = attrs
+        .tag
         .map(|McIoTag { value }| quote_spanned! { value.span() => #value })
-        .or_else(|| variant.discriminant.as_ref()
-            .map(|(_, expr)| quote_spanned! { expr.span() => #expr }))
+        .or_else(|| {
+            variant
+                .discriminant
+                .as_ref()
+                .map(|(_, expr)| quote_spanned! { expr.span() => #expr })
+        })
         .unwrap_or_else(|| {
             let literal = Literal::usize_unsuffixed(idx);
             quote_spanned! { variant.ident.span() => #literal }
         });
     let prefix = repr.as_prefix(discriminant);
 
-    let fields = iter_fields(&variant.fields)
-        .map(|(ident, field)| {
-            let ident = match ident {
-                Member::Named(ident) => Member::Named(ident),
-                Member::Unnamed(idx) => Member::Named(format_ident!("_{}", idx)),
-            };
-            generate_field(field, ident, None)
-        });
+    let fields = iter_fields(&variant.fields).map(|(ident, field)| {
+        let ident = match ident {
+            Member::Named(ident) => Member::Named(ident),
+            Member::Unnamed(idx) => Member::Named(format_ident!("_{}", idx)),
+        };
+        generate_field(field, ident, None)
+    });
 
     quote_spanned! { ident.span() =>
         #pattern => {
