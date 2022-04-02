@@ -1,0 +1,13 @@
+[package]
+name = "minecrevy_math"
+version = "0.6.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+thiserror = "^1.0"
+# feature: glam
+glam = { version = "^0.20", optional = true }
+# feature: nalgebra
+nalgebra = { version = "^0.30", optional = true }
