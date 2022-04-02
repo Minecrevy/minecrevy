@@ -4,9 +4,11 @@ use std::path::Path;
 use bevy::app::{App, Plugin};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, PartialEq, Debug, Default, Serialize, Deserialize)]
+use minecrevy_util::Difficulty;
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub view_distance: u32,
+    pub gameplay: GameplayConfig,
     pub network: NetworkConfig,
 }
 
@@ -17,14 +19,34 @@ impl Config {
 }
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct GameplayConfig {
+    pub difficulty: Difficulty,
+    /// True if the server is in hardcore mode (i.e. one life per player).
+    pub hardcore: bool,
+    /// True if clients should show less information in F3.
+    pub reduced_debug_info: bool,
+    /// The maximum view distance of chunks sent to players.
+    pub view_distance: u8,
+}
+
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct NetworkConfig {
+    /// The network address the server listens on.
     pub address: String,
 }
 
-impl Default for NetworkConfig {
+impl Default for Config {
     fn default() -> Self {
         Self {
-            address: "127.0.0.1:25565".to_owned(),
+            gameplay: GameplayConfig {
+                difficulty: Difficulty::Normal,
+                hardcore: false,
+                reduced_debug_info: false,
+                view_distance: 8,
+            },
+            network: NetworkConfig {
+                address: "127.0.0.1:25565".to_owned(),
+            },
         }
     }
 }

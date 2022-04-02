@@ -1,11 +1,11 @@
 [package]
 name = "minecrevy_config"
-version = "0.3.0"
+version = "0.6.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
+# workspace: api
+minecrevy_util = { path = "../../api/util", features = ["serde"] }
 # bevy
 bevy = { version = "^0.6", default-features = false }
 # serialization
