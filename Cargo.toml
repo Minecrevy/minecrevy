@@ -1,8 +1,26 @@
-[workspace]
-members = ["crates/*", "api/*", "server/*"]
-resolver = "2"
+[package]
+name = "minecrevy"
+version = "0.6.0"
+edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["api/*", "server/*", "scripts/*"]
+resolver = "2"
 
 [profile.dev.package."*"]
 opt-level = 3
+
+[dependencies]
+# workspace
+minecrevy_config = { path = "server/config" }
+minecrevy_game = { path = "server/game" }
+minecrevy_net = { path = "server/net" }
+# bevy
+bevy = { version = "^0.6", default-features = false }
+# logging
+tracing = "^0.1"
+tracing-subscriber = "^0.3"
+chrono = "^0.4"
+
+[patch.crates-io]
+bevy = { git = "https://github.com/ItsDoot/bevy" }
