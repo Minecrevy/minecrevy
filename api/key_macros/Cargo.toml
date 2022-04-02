@@ -4,7 +4,7 @@ version = "0.5.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "(Proc-)Macros for minecrevy_key"
-repository = "https://github.com/ItsDoot/minecrevy/"
+repository = "https://github.com/Minecrevy/minecrevy/"
 
 [lib]
 proc-macro = true

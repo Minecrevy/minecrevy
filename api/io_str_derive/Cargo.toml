@@ -4,7 +4,7 @@ version = "0.6.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Derive macros for minecrevy_io_str"
-repository = "https://github.com/ItsDoot/minecrevy/"
+repository = "https://github.com/Minecrevy/minecrevy/"
 keywords = ["derive", "io", "minecraft", "protocol", "packet"]
 
 [lib]

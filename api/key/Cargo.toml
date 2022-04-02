@@ -4,7 +4,7 @@ version = "0.6.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "A library to parse Minecraft resource keys."
-repository = "https://github.com/ItsDoot/minecrevy"
+repository = "https://github.com/Minecrevy/minecrevy"
 keywords = ["minecraft", "key", "io", "brigadier"]
 readme = "README.md"
 
