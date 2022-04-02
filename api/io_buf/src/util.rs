@@ -1,13 +1,12 @@
 //! Some utilities for working with raw packets.
 
+
 /// Returns the number of bytes needed to represent the specified number as a VarInt.
-pub const fn var_i32_bytes(value: i32) -> usize {
-    let mut len = 1;
-    while len < 5 {
-        if (value & -1) << (7 * len) == 0 {
-            return len;
+pub fn var_i32_bytes(value: i32) -> usize {
+    for i in 1..5 {
+        if (value & -1 << i * 7) == 0 {
+            return i;
         }
-        len += 1;
     }
     return 5;
 }
