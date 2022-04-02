@@ -1,0 +1,25 @@
+[package]
+name = "minecrevy_net"
+version = "0.6.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# workspace: api
+minecrevy_io_buf = { path = "../../api/io_buf" }
+minecrevy_io_str = { path = "../../api/io_str" }
+minecrevy_protocol = { path = "../../api/protocol", features = ["bevy"] }
+minecrevy_protocol_latest = { path = "../../api/protocol_latest" }
+minecrevy_tcp = { path = "../../api/tcp", features = ["bevy"] }
+minecrevy_text = { path = "../../api/text" }
+# workspace: server
+minecrevy_config = { path = "../config" }
+minecrevy_ecs = { path = "../ecs" }
+# bevy
+bevy = { version = "^0.6", default-features = false }
+# concurrency
+flume = "^0.10"
+tokio = { version = "^1.17", features = ["net", "rt-multi-thread"] }
+# logging
+tracing = "^0.1"
