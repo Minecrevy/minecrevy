@@ -3,8 +3,6 @@ use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 /// A box-on-write smart pointer.
 ///
 /// The type `Bow` is a smart pointer providing box-on-write functionality: it
@@ -16,11 +14,14 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /// is desired, `to_mut` will obtain a mutable reference to an owned
 /// value, boxing if necessary.
 pub enum Bow<'a, T: ?Sized + 'a> {
+    /// Borrowed data.
     Borrowed(&'a T),
+    /// Boxed data.
     Boxed(Box<T>),
 }
 
 impl<T: ?Sized> Bow<'_, T> {
+    /// Returns `true` if the data is borrowed, i.e. if [`to_mut`](Self::to_mut) would require additional work.
     pub fn is_borrowed(&self) -> bool {
         match self {
             Bow::Borrowed(_) => true,
@@ -28,6 +29,7 @@ impl<T: ?Sized> Bow<'_, T> {
         }
     }
 
+    /// Returns `true` if the data is boxed, i.e. if [`to_mut`](Self::to_mut) would be a no-op.
     pub fn is_boxed(&self) -> bool {
         !self.is_borrowed()
     }
@@ -37,6 +39,9 @@ impl<T: ?Sized> Bow<'_, T>
 where
     T: Clone
 {
+    /// Acquires a mutable reference to the boxed form of the data.
+    ///
+    /// Clones the data if it is not already boxed.
     pub fn to_mut(&mut self) -> &mut T {
         match *self {
             Bow::Borrowed(b) => {
@@ -50,6 +55,9 @@ where
         }
     }
 
+    /// Extracts the boxed data.
+    ///
+    /// Clones the data if it is not already boxed.
     pub fn into_boxed(self) -> Box<T> {
         match self {
             Bow::Borrowed(b) => Box::new(b.clone()),
@@ -162,27 +170,29 @@ impl<T: ?Sized> AsRef<T> for Bow<'_, T> {
     }
 }
 
-impl<'a, T: ?Sized> Serialize for Bow<'a, T>
+#[cfg(feature = "serde")]
+impl<'a, T> serde::Serialize for Bow<'a, T>
 where
-    T: Serialize
+    T: serde::Serialize
 {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: serde::Serializer,
     {
         (**self).serialize(serializer)
     }
 }
 
-impl<'de, 'a, T: ?Sized> Deserialize<'de> for Bow<'a, T>
+#[cfg(feature = "serde")]
+impl<'de, 'a, T> serde::Deserialize<'de> for Bow<'a, T>
 where
-    T: Deserialize<'de>
+    T: serde::Deserialize<'de>
 {
     #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>
+        D: serde::Deserializer<'de>
     {
         T::deserialize(deserializer).map(Box::new).map(Bow::Boxed)
     }
