@@ -1,3 +1,4 @@
+use flexstr::SharedStr;
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_protocol::Packet;
 
@@ -6,7 +7,7 @@ use minecrevy_protocol::Packet;
 pub struct LoginStart {
     /// The player's username.
     #[options(max_len = 16)]
-    pub name: String,
+    pub name: SharedStr,
 }
 
 /// Replies to the server to allow packet encryption.

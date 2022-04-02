@@ -1,15 +1,18 @@
 //! Types used in the Minecraft protocol.
 
+use std::error::Error;
 use std::io::{self, Read, Write};
+use std::marker::PhantomData;
 
-pub use glam::{DVec2, DVec3, IVec2, IVec3, Vec2, Vec3};
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use minecrevy_io_buf::{ReadMinecraftExt, WriteMinecraftExt};
-use minecrevy_io_str::{IntOptions, IVec3Options, McRead, McWrite};
-use minecrevy_key::{Key, KeyOptions, KeyRef};
+use minecrevy_io_str::{VectorOptions, IntOptions, McRead, McWrite};
+use minecrevy_key::{key, Key, KeyOptions, StaticKey};
+use minecrevy_math::num::{One, Zero};
+use minecrevy_math::vector::Vector;
 use minecrevy_text::Text;
+use minecrevy_util::GameMode;
 
 pub use self::advancement::*;
 pub use self::chunk::*;
@@ -27,18 +30,80 @@ mod recipes;
 mod scoreboard;
 mod world;
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
-#[io_repr(u8)]
-pub enum GameMode {
-    Survival = 0,
-    Creative = 1,
-    Adventure = 2,
-    Spectator = 3,
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Default)]
+pub struct AsPrimitive<T, Proto>(pub T, PhantomData<Proto>);
+
+impl<T, Proto> From<T> for AsPrimitive<T, Proto> {
+    fn from(v: T) -> Self {
+        Self(v, PhantomData)
+    }
 }
 
-impl Default for GameMode {
-    fn default() -> Self {
-        Self::Survival
+impl<T, Proto> McRead for AsPrimitive<T, Proto>
+where
+    T: TryFrom<Proto>,
+    Proto: McRead,
+    <T as TryFrom<Proto>>::Error: Error + Send + Sync + 'static,
+{
+    type Options = Proto::Options;
+
+    fn read<R: Read>(reader: R, options: Self::Options) -> io::Result<Self> {
+        let value = T::try_from(Proto::read(reader, options)?)
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        Ok(Self(value, PhantomData))
+    }
+}
+
+impl<T, Proto> McWrite for AsPrimitive<T, Proto>
+where
+    T: Clone,
+    Proto: TryFrom<T> + McWrite,
+    <Proto as TryFrom<T>>::Error: Error + Send + Sync + 'static,
+{
+    type Options = Proto::Options;
+
+    fn write<W: Write>(&self, writer: W, options: Self::Options) -> io::Result<()> {
+        let value = Proto::try_from(self.0.clone())
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        value.write(writer, options)
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Default)]
+pub struct BoolNum<T>(pub bool, PhantomData<T>);
+
+impl<T> From<bool> for BoolNum<T> {
+    #[inline]
+    fn from(v: bool) -> Self {
+        Self(v, PhantomData)
+    }
+}
+
+impl<T> From<BoolNum<T>> for bool {
+    fn from(v: BoolNum<T>) -> Self {
+        v.0
+    }
+}
+
+impl<T: Zero + PartialEq + McRead> McRead for BoolNum<T> {
+    type Options = T::Options;
+
+    fn read<R: Read>(reader: R, options: Self::Options) -> io::Result<Self> {
+        let value = T::read(reader, options)?;
+        Ok(Self::from(!value.is_zero()))
+    }
+}
+
+impl<T: Zero + One + McWrite> McWrite for BoolNum<T> {
+    type Options = T::Options;
+
+    fn write<W: Write>(&self, writer: W, options: Self::Options) -> io::Result<()> {
+        let value: T = match self.0 {
+            false => T::ZERO,
+            true => T::ONE,
+        };
+
+        value.write(writer, options)
     }
 }
 
@@ -55,10 +120,12 @@ impl McRead for PreviousGameMode {
             1 => Self(Some(GameMode::Creative)),
             2 => Self(Some(GameMode::Adventure)),
             3 => Self(Some(GameMode::Spectator)),
-            v => return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("expected previous gamemode -1, 0, 1, 2, or 3 but got {}", v),
-            ))
+            v => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("expected previous gamemode -1, 0, 1, 2, or 3 but got {}", v),
+                ));
+            }
         })
     }
 }
@@ -75,21 +142,6 @@ impl McWrite for PreviousGameMode {
             Some(GameMode::Spectator) => writer.write_i8(3)?,
         }
         Ok(())
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite, Serialize, Deserialize)]
-#[io_repr(u8)]
-pub enum Difficulty {
-    Peaceful = 0,
-    Easy = 1,
-    Normal = 2,
-    Hard = 3,
-}
-
-impl Default for Difficulty {
-    fn default() -> Self {
-        Self::Peaceful
     }
 }
 
@@ -134,35 +186,15 @@ impl From<Angle> for f32 {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
-#[io_repr(u8)]
-pub enum CardinalDirection {
-    South = 0,
-    West = 1,
-    North = 2,
-    East = 3,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
-#[io_repr(u8)]
-pub enum Direction {
-    Down = 0,
-    Up = 1,
-    North = 2,
-    South = 3,
-    West = 4,
-    East = 5,
-}
-
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
 pub enum SignalDestination {
-    Block(IVec3),
+    Block(Vector<3, i32>),
     Entity(i32),
 }
 
 impl SignalDestination {
-    pub(crate) const KEY_BLOCK: KeyRef<'static> = unsafe { KeyRef::new_unchecked("minecraft", "block") };
-    pub(crate) const KEY_ENTITY: KeyRef<'static> = unsafe { KeyRef::new_unchecked("minecraft", "entity") };
+    pub const BLOCK: StaticKey = key!(ref "minecraft:block");
+    pub const ENTITY: StaticKey = key!(ref "minecraft:entity");
 }
 
 impl McRead for SignalDestination {
@@ -172,12 +204,15 @@ impl McRead for SignalDestination {
         let key = Key::read(&mut reader, KeyOptions::default())?;
 
         match key.as_ref() {
-            Self::KEY_BLOCK => Ok(Self::Block(IVec3::read(reader, IVec3Options { compressed: true })?)),
-            Self::KEY_ENTITY => Ok(Self::Entity(i32::read(reader, IntOptions::varint())?)),
-            v => Err(io::Error::new(
+            Self::BLOCK => Ok(Self::Block(Vector::read(
+                reader,
+                VectorOptions { compressed: true },
+            )?)),
+            Self::ENTITY => Ok(Self::Entity(i32::read(reader, IntOptions::varint())?)),
+            _ => Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("unsupported destination type: {}", v),
-            ))
+                format!("unsupported destination type: {}", key),
+            )),
         }
     }
 }
@@ -188,11 +223,11 @@ impl McWrite for SignalDestination {
     fn write<W: Write>(&self, mut writer: W, _options: Self::Options) -> io::Result<()> {
         match self {
             Self::Block(pos) => {
-                Self::KEY_BLOCK.write(&mut writer, KeyOptions::default())?;
-                pos.write(writer, IVec3Options { compressed: true })?;
+                Self::BLOCK.write(&mut writer, KeyOptions::default())?;
+                pos.write(writer, VectorOptions { compressed: true })?;
             }
             Self::Entity(id) => {
-                Self::KEY_ENTITY.write(&mut writer, KeyOptions::default())?;
+                Self::ENTITY.write(&mut writer, KeyOptions::default())?;
                 id.write(writer, IntOptions::varint())?;
             }
         }
@@ -245,14 +280,6 @@ pub enum BossBarStyle {
     Notched10 = 2,
     Notched12 = 3,
     Notched20 = 4,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
-#[io_repr(u8)]
-pub enum MessageKind {
-    Chat = 0,
-    System = 1,
-    ActionBar = 2,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
@@ -482,13 +509,6 @@ pub enum StructureBlockRotation {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
 #[io_repr(varint)]
-pub enum Hand {
-    Main = 0,
-    Off = 1,
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
-#[io_repr(varint)]
 pub enum FaceMode {
     Feet = 0,
     Eyes = 1,
@@ -505,10 +525,21 @@ pub struct FaceEntity {
 pub enum ParticleData {
     Empty,
     BlockState(i32),
-    Dust { rgb: Vec3, scale: f32 },
-    DustTransition { from_rgb: Vec3, scale: f32, to_rgb: Vec3 },
+    Dust {
+        rgb: Vector<3, f32>,
+        scale: f32,
+    },
+    DustTransition {
+        from_rgb: Vector<3, f32>,
+        scale: f32,
+        to_rgb: Vector<3, f32>,
+    },
     Item(Slot),
-    Vibration { origin: IVec3, vibration: ParticleDataVibration, ticks: i32 },
+    Vibration {
+        origin: Vector<3, i32>,
+        vibration: ParticleDataVibration,
+        ticks: i32,
+    },
 }
 
 impl McRead for ParticleData {
@@ -529,7 +560,7 @@ impl McWrite for ParticleData {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum ParticleDataVibration {
-    Block(IVec3),
+    Block(Vector<3, i32>),
     Entity(i32),
 }
 
@@ -539,12 +570,15 @@ impl McRead for ParticleDataVibration {
     fn read<R: Read>(mut reader: R, (): Self::Options) -> io::Result<Self> {
         let key = Key::read(&mut reader, KeyOptions::default())?;
         match key.as_ref() {
-            SignalDestination::KEY_BLOCK => Ok(Self::Block(IVec3::read(reader, IVec3Options { compressed: true })?)),
-            SignalDestination::KEY_ENTITY => Ok(Self::Entity(i32::read(reader, IntOptions::varint())?)),
-            v => Err(io::Error::new(
+            SignalDestination::BLOCK => Ok(Self::Block(Vector::read(
+                reader,
+                VectorOptions { compressed: true },
+            )?)),
+            SignalDestination::ENTITY => Ok(Self::Entity(i32::read(reader, IntOptions::varint())?)),
+            _ => Err(io::Error::new(
                 io::ErrorKind::InvalidData,
-                format!("unsupported vibration type: {}", v),
-            ))
+                format!("unsupported vibration type: {}", key),
+            )),
         }
     }
 }
@@ -555,11 +589,11 @@ impl McWrite for ParticleDataVibration {
     fn write<W: Write>(&self, mut writer: W, (): Self::Options) -> io::Result<()> {
         match self {
             Self::Block(pos) => {
-                SignalDestination::KEY_BLOCK.write(&mut writer, KeyOptions::default())?;
-                pos.write(writer, IVec3Options { compressed: true })?;
+                SignalDestination::BLOCK.write(&mut writer, KeyOptions::default())?;
+                pos.write(writer, VectorOptions { compressed: true })?;
             }
             Self::Entity(id) => {
-                SignalDestination::KEY_ENTITY.write(&mut writer, KeyOptions::default())?;
+                SignalDestination::ENTITY.write(&mut writer, KeyOptions::default())?;
                 id.write(writer, IntOptions::varint())?;
             }
         }

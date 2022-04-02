@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use flexstr::SharedStr;
 
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_key::Key;
@@ -38,7 +39,7 @@ pub enum AdvancementFrameKind {
 pub struct AdvancementCriteria(pub Text);
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
-pub struct AdvancementRequirement(pub Vec<String>);
+pub struct AdvancementRequirement(pub Vec<SharedStr>);
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct AdvancementProgress(pub HashMap<Key, CriteriaProgress>);

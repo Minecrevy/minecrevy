@@ -1,14 +1,15 @@
 use std::collections::HashMap;
 use std::io::{Read, Write};
 
-use glam::{IVec3, Vec3};
 use uuid::Uuid;
 
 use minecrevy_io_buf::{ReadMinecraftExt, WriteMinecraftExt};
 use minecrevy_io_str::{McRead, McWrite};
+use minecrevy_math::vector::Vector;
 use minecrevy_text::Text;
+use minecrevy_util::Direction3d;
 
-use crate::types::{Direction, Slot};
+use crate::types::Slot;
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct Metadata(pub HashMap<u8, MetadataValue>);
@@ -54,10 +55,10 @@ pub enum MetadataValue {
     OptText(Option<Text>),
     Slot(Slot),
     Bool(bool),
-    Rotation(Vec3),
-    Position(#[options(compressed = true)] IVec3),
-    OptPosition(#[options(inner.compressed = true)] Option<IVec3>),
-    Direction(Direction),
+    Rotation(Vector<3, f32>),
+    Position(#[options(compressed = true)] Vector<3, i32>),
+    OptPosition(#[options(inner.compressed = true)] Option<Vector<3, i32>>),
+    Direction(Direction3d),
     OptUuid(Option<Uuid>),
     OptBlockId(#[options(varint = true)] i32),
     Nbt(nbt::Blob),

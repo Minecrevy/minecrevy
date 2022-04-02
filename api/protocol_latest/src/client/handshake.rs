@@ -1,3 +1,4 @@
+use flexstr::SharedStr;
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_protocol::Packet;
 
@@ -13,7 +14,7 @@ pub struct Handshake {
     ///
     /// This may be useful for proxies to determine target server.
     #[options(max_len = 255)]
-    pub address: String,
+    pub address: SharedStr,
     /// The port specified in the address bar by the client.
     pub port: u16,
     /// The transition state the client expects.

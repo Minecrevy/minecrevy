@@ -1,5 +1,6 @@
 use std::io;
 use std::io::{Read, Write};
+use flexstr::SharedStr;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -27,14 +28,14 @@ pub struct Motd {
     pub description: Text,
     /// The server icon.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub favicon: Option<String>,
+    pub favicon: Option<SharedStr>,
 }
 
 /// The protocol version that a server supports, and the human readable name for said version.
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct MotdVersion {
     /// The human readable name of the protocol version.
-    pub name: String,
+    pub name: SharedStr,
     /// The protocol number.
     pub protocol: i32,
 }
@@ -55,7 +56,7 @@ pub struct MotdPlayers {
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct MotdPlayerSample {
     /// The player's name.
-    pub name: String,
+    pub name: SharedStr,
     /// The player's UUID.
     pub id: Uuid,
 }
@@ -63,7 +64,7 @@ pub struct MotdPlayerSample {
 impl Default for Motd {
     fn default() -> Self {
         Self {
-            version: MotdVersion { name: "1.18.1".to_string(), protocol: 757 },
+            version: MotdVersion { name: SharedStr::from_static("1.18.1"), protocol: 757 },
             players: MotdPlayers {
                 max: 20,
                 online: 0,

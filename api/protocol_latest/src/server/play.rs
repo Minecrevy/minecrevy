@@ -1,13 +1,16 @@
 use std::collections::HashMap;
+use std::marker::PhantomData;
 
 use enumflags2::BitFlags;
-use glam::{DVec3, IVec3};
+use flexstr::SharedStr;
 use uuid::Uuid;
 
 use minecrevy_io_str::{McRead, McWrite, Nbt};
 use minecrevy_key::Key;
+use minecrevy_math::vector::Vector;
 use minecrevy_protocol::Packet;
-use minecrevy_text::Text;
+use minecrevy_text::{Text, TextPosition};
+use minecrevy_util::{Difficulty, Direction2d, GameMode, Hand};
 
 use crate::types::*;
 
@@ -27,7 +30,7 @@ pub struct SpawnEntity {
     #[options(varint = true)]
     pub ty: i32,
     /// The entity's position.
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     /// The entity's pitch as an [`Angle`].
     pub pitch: Angle,
     /// The entity's yaw as an [`Angle`].
@@ -47,7 +50,7 @@ pub struct SpawnExpOrb {
     #[options(varint = true)]
     pub net_id: i32,
     /// The experience orb's position.
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     /// How much experience the orb will reward when collected.
     pub count: i16,
 }
@@ -64,7 +67,7 @@ pub struct SpawnLivingEntity {
     #[options(varint = true)]
     pub ty: i32,
     /// The entity's position.
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     /// The entity's yaw as an [`Angle`].
     pub yaw: Angle,
     /// The entity's pitch as an [`Angle`].
@@ -88,9 +91,9 @@ pub struct SpawnPainting {
     pub painting_id: i32,
     /// The painting's position from the painting's center.
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     /// The painting's faced direction.
-    pub direction: CardinalDirection,
+    pub direction: Direction2d,
 }
 
 /// Spawns a player.
@@ -102,7 +105,7 @@ pub struct SpawnPlayer {
     /// The player's [`unique ID`][`Uuid`].
     pub uuid: Uuid,
     /// The player's position.
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     /// The player's yaw as an [`Angle`].
     pub yaw: Angle,
     /// The player's pitch as an [`Angle`].
@@ -114,7 +117,7 @@ pub struct SpawnPlayer {
 pub struct SpawnVibrationSignal {
     /// The vibration's source position.
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     /// The vibration's destination.
     pub destination: SignalDestination,
     /// How long until the vibration arrives at the destination.
@@ -141,7 +144,7 @@ pub struct StatisticsUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct AckBlockBreak {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     #[options(varint = true)]
     pub block: i32,
     #[options(varint = true)]
@@ -155,7 +158,7 @@ pub struct BlockBreakAnimation {
     #[options(varint = true)]
     pub entity_id: i32,
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     /// 0..=9
     pub stage: u8,
 }
@@ -164,7 +167,7 @@ pub struct BlockBreakAnimation {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct SpawnBlockEntity {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     #[options(varint = true)]
     pub ty: i32,
     pub data: nbt::Value,
@@ -174,7 +177,7 @@ pub struct SpawnBlockEntity {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BlockAction {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     pub action_id: u8,
     pub action_param: u8,
     #[options(varint = true)]
@@ -185,7 +188,7 @@ pub struct BlockAction {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BlockUpdate {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     #[options(varint = true)]
     pub block_id: i32,
 }
@@ -236,7 +239,7 @@ pub struct DifficultyUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ChatMessage {
     pub message: Text,
-    pub kind: MessageKind,
+    pub position: TextPosition,
     pub sender: Uuid,
 }
 
@@ -308,7 +311,7 @@ pub struct NamedSoundEffect {
     pub name: Key,
     #[options(varint = true)]
     pub category: i32,
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     pub volume: f32,
     pub pitch: f32,
 }
@@ -321,10 +324,10 @@ pub struct EntityStatus {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct Explosion {
-    pub position: Vec3,
+    pub position: Vector<3, f32>,
     pub strength: f32,
     pub offsets: Vec<BlockOffset>,
-    pub push_velocity: Vec3,
+    pub push_velocity: Vector<3, f32>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -334,9 +337,38 @@ pub struct ChunkUnload {
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
-pub struct GameStateUpdate {
-    pub reason: u8,
-    pub value: f32,
+#[io_repr(u8)]
+pub enum GameStateUpdate {
+    /// The player couldn't respawn at their normal respawn location.
+    NoRespawnBlock(PhantomData<f32>),
+    /// It has stopped raining in the player's world.
+    BeginRaining(PhantomData<f32>),
+    /// It has started raining in the player's world.
+    EndRaining(PhantomData<f32>),
+    /// The player's [`GameMode`] has changed.
+    GameMode(AsPrimitive<GameMode, f32>),
+    /// The player beat the game (killed the EnderDragon and jumped through the spawned portal).
+    WinGame {
+        /// True if the endgame credits should be shown.
+        roll_credits: BoolNum<f32>,
+    },
+    /// The player is playing the demo version of the game.
+    DemoEvent(f32),
+    /// The player has been struck by an arrow.
+    ArrowHitPlayer(PhantomData<f32>),
+    /// The amount of rain falling in the player's world has changed.
+    RainLevelChange(f32),
+    /// The amount of thunder sounding off in the player's world has changed.
+    ThunderLevelChange(f32),
+    /// Plays the pufferfish sting sound effect.
+    PlayPufferfishStingSound(PhantomData<f32>),
+    /// Shows the elder guardian overlay and plays its sound.
+    PlayElderGuardianMobAppearance(PhantomData<f32>),
+    /// Tells the player they are respawning.
+    Respawn {
+        /// True if the respawn screen should be skipped.
+        immediate: BoolNum<f32>,
+    },
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -368,7 +400,7 @@ pub struct KeepAlive(pub i64);
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ChunkDataAndLightUpdate {
-    pub chunk_coords: IVec2,
+    pub chunk_coords: Vector<2, i32>,
     pub chunk: ChunkData,
     pub light: LightData,
 }
@@ -377,7 +409,7 @@ pub struct ChunkDataAndLightUpdate {
 pub struct GameEffect {
     pub effect_id: i32,
     #[options(compressed = true)]
-    pub location: IVec3,
+    pub location: Vector<3, i32>,
     pub data: i32,
     pub disable_relative_volume: bool,
 }
@@ -386,8 +418,8 @@ pub struct GameEffect {
 pub struct SpawnParticle {
     pub particle_id: i32,
     pub long_dst: bool,
-    pub position: DVec3,
-    pub offset: Vec3,
+    pub position: Vector<3, f64>,
+    pub offset: Vector<3, f32>,
     pub value: f32,
     pub count: i32,
     pub data: ParticleData, // TODO
@@ -395,7 +427,7 @@ pub struct SpawnParticle {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct LightUpdate {
-    pub chunk_coords: IVec2,
+    pub chunk_coords: Vector<2, i32>,
     pub light: LightData,
 }
 
@@ -411,15 +443,15 @@ pub struct JoinGame {
     /// The player's previous gamemode.
     pub previous_gamemode: PreviousGameMode,
     /// The keys for all worlds in the server.
-    pub world_keys: Vec<Key>,
+    pub worlds: Vec<Key>,
     /// A dimension and biome registry.
-    pub dimension_codec: Nbt<DimensionCodec>,
+    pub dimension_registry: Nbt<DimensionRegistry>,
     /// The dimension type data.
     pub dimension_type: Nbt<DimensionType>,
     /// The key of the player's current world.
-    pub world_key: Key,
+    pub world: Key,
     /// First 8 bytes of SHA256 hash of the world's seed.
-    pub hashed_seed: i64,
+    pub seed: i64,
     /// The maximum players. Currently ignored by the client.
     #[options(varint = true)]
     pub max_players: i32,
@@ -491,7 +523,7 @@ pub struct EntityRotation {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct VehicleMovement {
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     pub yaw: f32,
     pub pitch: f32,
 }
@@ -512,7 +544,7 @@ pub struct OpenWindow {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct OpenSignEditor {
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -557,16 +589,17 @@ pub struct TabListUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct FacePlayer {
     pub mode: FaceMode,
-    pub target: DVec3,
+    pub target: Vector<3, f64>,
     pub entity: Option<FaceEntity>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerPositionAndRotation {
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     pub yaw: f32,
     pub pitch: f32,
-    pub flags: i8,
+    // TODO: strongly typed bit mask
+    pub flags: u8,
     #[options(varint = true)]
     pub tp_id: i32,
     pub dismount: bool,
@@ -596,9 +629,9 @@ pub struct RemoveEntityEffect {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ResourcePackRequest {
-    pub url: String,
+    pub url: SharedStr,
     #[options(max_len = 40)]
-    pub hash: String,
+    pub hash: SharedStr,
     pub forced: bool,
     pub prompt: Option<Text>,
 }
@@ -636,9 +669,7 @@ pub struct SelectAdvancementTab {
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
-pub struct ActionBarMessage {
-    pub message: Text,
-}
+pub struct ActionBarMessage(pub Text);
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct WorldBorderCenter {
@@ -698,15 +729,15 @@ pub struct ViewDistanceUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct SpawnPosition {
     #[options(compressed = true)]
-    pub position: IVec3,
-    pub angle: f32,
+    pub position: Vector<3, i32>,
+    pub pitch: f32,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ShowScoreboard {
     pub display_kind: ScoreboardDisplayKind,
     #[options(max_len = 16)]
-    pub score_name: String,
+    pub score_name: SharedStr,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -756,7 +787,7 @@ pub struct HealthUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ScoreboardObjectiveUpdate {
     #[options(max_len = 16)]
-    pub name: String,
+    pub name: SharedStr,
     pub mode: i8,
     // TODO: weird Option<T> semantics
 }
@@ -782,10 +813,10 @@ pub enum TeamUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ScoreUpdate {
     #[options(max_len = 40)]
-    pub entity_name: String,
+    pub entity_name: SharedStr,
     pub action: i8,
     #[options(max_len = 16)]
-    pub objective_name: String,
+    pub objective_name: SharedStr,
     // TODO: value field with weird Option<T> semantics
 }
 
@@ -832,7 +863,7 @@ pub struct SoundEffect {
     pub sound_id: i32,
     #[options(varint = true)]
     pub sound_category: i32,
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     pub volume: f32,
     pub pitch: f32,
 }
@@ -870,7 +901,7 @@ pub struct ItemPickup {
 pub struct EntityTeleport {
     #[options(varint = true)]
     pub entity_id: i32,
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     pub yaw: Angle,
     pub pitch: Angle,
     pub ground: bool,

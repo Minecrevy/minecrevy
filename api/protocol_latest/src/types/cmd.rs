@@ -1,8 +1,9 @@
 use std::io::{self, Read, Write};
+use flexstr::SharedStr;
 
 use minecrevy_io_buf::ReadMinecraftExt;
 use minecrevy_io_str::{IntOptions, ListLength, ListOptions, McRead, McWrite, StringOptions};
-use minecrevy_key::{Key, KeyOptions, KeyRef};
+use minecrevy_key::{Key, key, KeyOptions, KeyRef, StaticKey};
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct CommandNode {
@@ -31,10 +32,10 @@ impl McRead for CommandNode {
             value: match flags & 0x03 {
                 0 => CommandNodeValue::Root,
                 1 => CommandNodeValue::Literal {
-                    name: String::read(&mut reader, StringOptions::default())?,
+                    name: SharedStr::read(&mut reader, StringOptions::default())?,
                 },
                 2 => CommandNodeValue::Argument {
-                    name: String::read(&mut reader, StringOptions::default())?,
+                    name: SharedStr::read(&mut reader, StringOptions::default())?,
                     parser: ArgumentParser::read(&mut reader, ())?,
                     suggestions: if flags & 0x10 == 0x10 {
                         Some(SuggestionKind::read(&mut reader, ())?)
@@ -91,10 +92,10 @@ impl McWrite for CommandNode {
 pub enum CommandNodeValue {
     Root,
     Literal {
-        name: String,
+        name: SharedStr,
     },
     Argument {
-        name: String,
+        name: SharedStr,
         parser: ArgumentParser,
         suggestions: Option<SuggestionKind>,
     },
@@ -123,12 +124,12 @@ pub enum ArgumentParser {
 }
 
 impl ArgumentParser {
-    const KEY_BOOL: KeyRef<'static> = unsafe { KeyRef::new_unchecked("brigadier", "bool") };
-    const KEY_DOUBLE: KeyRef<'static> = unsafe { KeyRef::new_unchecked("brigadier", "double") };
-    const KEY_FLOAT: KeyRef<'static> = unsafe { KeyRef::new_unchecked("brigadier", "float") };
-    const KEY_INTEGER: KeyRef<'static> = unsafe { KeyRef::new_unchecked("brigadier", "integer") };
-    const KEY_LONG: KeyRef<'static> = unsafe { KeyRef::new_unchecked("brigadier", "long") };
-    const KEY_STRING: KeyRef<'static> = unsafe { KeyRef::new_unchecked("brigadier", "string") };
+    const BOOL: StaticKey = key!(ref "brigadier:bool");
+    const DOUBLE: StaticKey = key!(ref "brigadier:double");
+    const FLOAT: StaticKey = key!(ref "brigadier:float");
+    const INTEGER: StaticKey = key!(ref "brigadier:integer");
+    const LONG: StaticKey = key!(ref "brigadier:long");
+    const STRING: StaticKey = key!(ref "brigadier:string");
 }
 
 impl McRead for ArgumentParser {
@@ -137,36 +138,36 @@ impl McRead for ArgumentParser {
     fn read<R: Read>(mut reader: R, (): Self::Options) -> io::Result<Self> {
         let key = Key::read(&mut reader, KeyOptions::default())?;
         match key.as_ref() {
-            Self::KEY_BOOL => Ok(Self::Bool),
-            Self::KEY_DOUBLE => {
+            Self::BOOL => Ok(Self::Bool),
+            Self::DOUBLE => {
                 let flags = reader.read_u8()?;
                 Ok(Self::Double {
                     min: if flags & 0x01 == 0x01 { Some(reader.read_f64()?) } else { None },
                     max: if flags & 0x02 == 0x02 { Some(reader.read_f64()?) } else { None },
                 })
             }
-            Self::KEY_FLOAT => {
+            Self::FLOAT => {
                 let flags = reader.read_u8()?;
                 Ok(Self::Float {
                     min: if flags & 0x01 == 0x01 { Some(reader.read_f32()?) } else { None },
                     max: if flags & 0x02 == 0x02 { Some(reader.read_f32()?) } else { None },
                 })
             }
-            Self::KEY_INTEGER => {
+            Self::INTEGER => {
                 let flags = reader.read_u8()?;
                 Ok(Self::Integer {
                     min: if flags & 0x01 == 0x01 { Some(reader.read_i32()?) } else { None },
                     max: if flags & 0x02 == 0x02 { Some(reader.read_i32()?) } else { None },
                 })
             }
-            Self::KEY_LONG => {
+            Self::LONG => {
                 let flags = reader.read_u8()?;
                 Ok(Self::Long {
                     min: if flags & 0x01 == 0x01 { Some(reader.read_i64()?) } else { None },
                     max: if flags & 0x02 == 0x02 { Some(reader.read_i64()?) } else { None },
                 })
             }
-            Self::KEY_STRING => Ok(Self::String(StringArgumentKind::read(reader, ())?)),
+            Self::STRING => Ok(Self::String(StringArgumentKind::read(reader, ())?)),
             v => Err(io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("unsupported argument type: {}", v),
@@ -181,10 +182,10 @@ impl McWrite for ArgumentParser {
     fn write<W: Write>(&self, mut writer: W, (): Self::Options) -> io::Result<()> {
         match self {
             ArgumentParser::Bool => {
-                Self::KEY_BOOL.write(&mut writer, KeyOptions::default())?;
+                Self::BOOL.write(&mut writer, KeyOptions::default())?;
             }
             ArgumentParser::Double { min, max } => {
-                Self::KEY_DOUBLE.write(&mut writer, KeyOptions::default())?;
+                Self::DOUBLE.write(&mut writer, KeyOptions::default())?;
                 let mut flags = 0u8;
                 if min.is_some() { flags |= 0x01 }
                 if max.is_some() { flags |= 0x02 }
@@ -193,7 +194,7 @@ impl McWrite for ArgumentParser {
                 if let Some(max) = max { max.write(&mut writer, ())?; }
             }
             ArgumentParser::Float { min, max } => {
-                Self::KEY_FLOAT.write(&mut writer, KeyOptions::default())?;
+                Self::FLOAT.write(&mut writer, KeyOptions::default())?;
                 let mut flags = 0u8;
                 if min.is_some() { flags |= 0x01 }
                 if max.is_some() { flags |= 0x02 }
@@ -202,7 +203,7 @@ impl McWrite for ArgumentParser {
                 if let Some(max) = max { max.write(&mut writer, ())?; }
             }
             ArgumentParser::Integer { min, max } => {
-                Self::KEY_INTEGER.write(&mut writer, KeyOptions::default())?;
+                Self::INTEGER.write(&mut writer, KeyOptions::default())?;
                 let mut flags = 0u8;
                 if min.is_some() { flags |= 0x01 }
                 if max.is_some() { flags |= 0x02 }
@@ -211,7 +212,7 @@ impl McWrite for ArgumentParser {
                 if let Some(max) = max { max.write(&mut writer, IntOptions::normal())?; }
             }
             ArgumentParser::Long { min, max } => {
-                Self::KEY_LONG.write(&mut writer, KeyOptions::default())?;
+                Self::LONG.write(&mut writer, KeyOptions::default())?;
                 let mut flags = 0u8;
                 if min.is_some() { flags |= 0x01 }
                 if max.is_some() { flags |= 0x02 }
@@ -220,7 +221,7 @@ impl McWrite for ArgumentParser {
                 if let Some(max) = max { max.write(&mut writer, IntOptions::normal())?; }
             }
             ArgumentParser::String(kind) => {
-                Self::KEY_STRING.write(&mut writer, KeyOptions::default())?;
+                Self::STRING.write(&mut writer, KeyOptions::default())?;
                 kind.write(&mut writer, ())?;
             }
         }
@@ -246,11 +247,11 @@ pub enum SuggestionKind {
 }
 
 impl SuggestionKind {
-    const KEY_ASK_SERVER: KeyRef<'static> = unsafe { KeyRef::new_unchecked("minecraft", "ask_server") };
-    const KEY_ALL_RECIPES: KeyRef<'static> = unsafe { KeyRef::new_unchecked("minecraft", "all_recipes") };
-    const KEY_AVAILABLE_SOUNDS: KeyRef<'static> = unsafe { KeyRef::new_unchecked("minecraft", "available_sounds") };
-    const KEY_AVAILABLE_BIOMES: KeyRef<'static> = unsafe { KeyRef::new_unchecked("minecraft", "available_biomes") };
-    const KEY_SUMMONABLE_ENTITIES: KeyRef<'static> = unsafe { KeyRef::new_unchecked("minecraft", "summonable_entities 	") };
+    const KEY_ASK_SERVER: KeyRef<'static> = unsafe { KeyRef::static_unchecked("minecraft", "ask_server") };
+    const KEY_ALL_RECIPES: KeyRef<'static> = unsafe { KeyRef::static_unchecked("minecraft", "all_recipes") };
+    const KEY_AVAILABLE_SOUNDS: KeyRef<'static> = unsafe { KeyRef::static_unchecked("minecraft", "available_sounds") };
+    const KEY_AVAILABLE_BIOMES: KeyRef<'static> = unsafe { KeyRef::static_unchecked("minecraft", "available_biomes") };
+    const KEY_SUMMONABLE_ENTITIES: KeyRef<'static> = unsafe { KeyRef::static_unchecked("minecraft", "summonable_entities 	") };
 }
 
 impl McRead for SuggestionKind {

@@ -1,10 +1,13 @@
 use enumflags2::BitFlags;
-use glam::IVec3;
+use flexstr::SharedStr;
 use uuid::Uuid;
 
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_key::Key;
+use minecrevy_math::vector::Vector;
 use minecrevy_protocol::Packet;
+use minecrevy_text::ChatVisibility;
+use minecrevy_util::{Difficulty, Hand, MainHand};
 
 use crate::types::*;
 
@@ -19,7 +22,7 @@ pub struct NBTQueryBlock {
     #[options(varint = true)]
     pub transaction_id: i32,
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -30,7 +33,7 @@ pub struct DifficultyUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ChatMessage {
     #[options(max_len = 256)]
-    pub message: String,
+    pub message: SharedStr,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -41,16 +44,15 @@ pub struct ClientStatusUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ClientSettings {
     #[options(max_len = 16)]
-    pub locale: String,
+    pub locale: SharedStr,
     pub view_dst: i8,
-    #[options(varint = true)]
-    pub chat_mode: i32,
+    pub visibility: ChatVisibility,
     pub chat_colors: bool,
+    // TODO: strongly typed bit mask
     pub skin_parts: u8,
-    #[options(varint = true)]
-    pub main_hand: i32,
-    pub enable_text_filter: bool,
-    pub allow_server_listings: bool,
+    pub main_hand: MainHand,
+    pub filter_text: bool,
+    pub shown_on_tablist: bool,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -58,7 +60,7 @@ pub struct TabCompletion {
     #[options(varint = true)]
     pub transaction_id: i32,
     #[options(max_len = 32500)]
-    pub text: String,
+    pub text: SharedStr,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -93,10 +95,10 @@ pub struct PluginMessage {
 }
 
 impl PluginMessage {
-    pub fn brand(brand: String) -> Self {
+    pub fn brand(brand: &str) -> Self {
         Self {
             channel: Key::new("minecraft", "brand").unwrap(),
-            data: brand.into_bytes(),
+            data: brand.as_bytes().to_vec(),
         }
     }
 }
@@ -104,8 +106,8 @@ impl PluginMessage {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BookEdit {
     pub hand: Hand,
-    pub pages: Vec<String>,
-    pub title: Option<String>,
+    pub pages: Vec<SharedStr>,
+    pub title: Option<SharedStr>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -127,7 +129,7 @@ pub struct EntityInteraction {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct StructureGeneration {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     #[options(varint = true)]
     pub levels: i32,
     pub keep_jigsaws: bool,
@@ -142,13 +144,13 @@ pub struct LockDifficulty {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerPosition {
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     pub ground: bool,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct PlayerPositionAndRotation {
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     pub yaw: f32,
     pub pitch: f32,
     pub ground: bool,
@@ -168,7 +170,7 @@ pub struct PlayerGrounded {
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct VehicleMovement {
-    pub position: DVec3,
+    pub position: Vector<3, f64>,
     pub yaw: f32,
     pub pitch: f32,
 }
@@ -200,7 +202,7 @@ pub struct PlayerAbilitiesUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct BlockDig {
     pub status: BlockDigStatus,
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     pub face: Face,
 }
 
@@ -235,7 +237,7 @@ pub struct DisplayedRecipe(pub Key);
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct ItemName {
-    pub name: String,
+    pub name: SharedStr,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -272,8 +274,8 @@ pub struct HeldItemChange {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct CommandBlockUpdate {
     #[options(compressed = true)]
-    pub position: IVec3,
-    pub command: String,
+    pub position: Vector<3, i32>,
+    pub command: SharedStr,
     pub mode: CommandBlockMode,
     pub flags: i8,
 }
@@ -282,7 +284,7 @@ pub struct CommandBlockUpdate {
 pub struct CommandBlockMinecartUpdate {
     #[options(varint = true)]
     pub entity_id: i32,
-    pub command: String,
+    pub command: SharedStr,
     pub track_output: bool,
 }
 
@@ -295,26 +297,26 @@ pub struct CreativeInventoryUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct JigsawBlockUpdate {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     pub name: Key,
     pub target: Key,
     pub pool: Key,
-    pub final_state: String,
-    pub joint_type: String,
+    pub final_state: SharedStr,
+    pub joint_type: SharedStr,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct StructureBlockUpdate {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     pub action: StructureBlockAction,
     pub mode: StructureBlockMode,
-    pub name: String,
+    pub name: SharedStr,
     pub offset: [i8; 3],
     pub size: [i8; 3],
     pub mirror: StructureBlockMirror,
     pub rotation: StructureBlockRotation,
-    pub metadata: String,
+    pub metadata: SharedStr,
     pub integrity: f32,
     #[options(varint = true)]
     pub seed: i64,
@@ -324,9 +326,9 @@ pub struct StructureBlockUpdate {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
 pub struct SignUpdate {
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     #[options(inner.max_len = 384)]
-    pub lines: [String; 4],
+    pub lines: [SharedStr; 4],
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite, Packet)]
@@ -343,9 +345,9 @@ pub struct Spectate {
 pub struct PlayerBlockPlacement {
     pub hand: Hand,
     #[options(compressed = true)]
-    pub position: IVec3,
+    pub position: Vector<3, i32>,
     pub face: Face,
-    pub cursor_position: Vec3,
+    pub cursor_position: Vector<3, f32>,
     pub inside_block: bool,
 }
 

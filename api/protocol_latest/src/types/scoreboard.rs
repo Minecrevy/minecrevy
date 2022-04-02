@@ -1,3 +1,4 @@
+use flexstr::SharedStr;
 use minecrevy_io_str::{McRead, McWrite};
 use minecrevy_text::Text;
 
@@ -30,14 +31,14 @@ pub struct CreateTeam {
     pub name: Text,
     pub friendly_flags: i8,
     #[options(max_len = 32)]
-    pub name_tag_visibility: String,
+    pub name_tag_visibility: SharedStr,
     #[options(max_len = 32)]
-    pub collision_rule: String,
+    pub collision_rule: SharedStr,
     pub style: TeamStyle,
     pub prefix: Text,
     pub suffix: Text,
     #[options(inner.max_len = 40)]
-    pub entities: Vec<String>,
+    pub entities: Vec<SharedStr>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
@@ -48,9 +49,9 @@ pub struct UpdateTeam {
     pub name: Text,
     pub friendly_flags: i8,
     #[options(max_len = 32)]
-    pub name_tag_visibility: String,
+    pub name_tag_visibility: SharedStr,
     #[options(max_len = 32)]
-    pub collision_rule: String,
+    pub collision_rule: SharedStr,
     pub style: TeamStyle,
     pub prefix: Text,
     pub suffix: Text,
@@ -59,13 +60,13 @@ pub struct UpdateTeam {
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct AddTeamEntities {
     #[options(inner.max_len = 40)]
-    pub entities: Vec<String>,
+    pub entities: Vec<SharedStr>,
 }
 
 #[derive(Clone, PartialEq, Debug, McRead, McWrite)]
 pub struct RemoveTeamEntities {
     #[options(inner.max_len = 40)]
-    pub entities: Vec<String>,
+    pub entities: Vec<SharedStr>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, McRead, McWrite)]
