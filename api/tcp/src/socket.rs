@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 /// Uniquely identifies a protocol connection, usually for servers.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
 #[cfg_attr(feature = "bevy", derive(bevy::prelude::Component))]
 pub struct SocketId(SocketAddr, u32);
 
@@ -27,6 +27,11 @@ impl SocketId {
     }
 }
 
+impl fmt::Debug for SocketId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}/{}", self.0, self.1)
+    }
+}
 
 impl fmt::Display for SocketId {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
