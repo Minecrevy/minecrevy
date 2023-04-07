@@ -1,9 +1,8 @@
 use std::io::{self, Read, Write};
 
-use minecrevy_bytes::blocking::{ReadMinecraftExt, WriteMinecraftExt};
-
 use crate::{
     options::{ListLength, ListOptions, StringOptions},
+    std_ext::{ReadMinecraftExt, WriteMinecraftExt},
     McRead, McWrite,
 };
 

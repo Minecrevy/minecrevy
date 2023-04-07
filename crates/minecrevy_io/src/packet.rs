@@ -1,9 +1,15 @@
+//! An untyped, raw Minecraft packet.
+
 use std::{
     fmt::{self, Write as _},
     io::{Cursor, Read, Write},
 };
 
-use crate::var_i32_bytes;
+#[cfg(feature = "codec")]
+pub use self::codec::*;
+
+#[cfg(feature = "codec")]
+mod codec;
 
 /// A single packet in the Minecraft protocol.
 ///
@@ -53,4 +59,14 @@ impl fmt::Debug for RawPacket {
 
         write!(f, "RawPacket({:#X}, {})", self.id, data)
     }
+}
+
+/// Returns the number of bytes needed to represent the specified number as a VarInt.
+fn var_i32_bytes(value: i32) -> usize {
+    for i in 1..5 {
+        if (value & -1 << i * 7) == 0 {
+            return i;
+        }
+    }
+    return 5;
 }

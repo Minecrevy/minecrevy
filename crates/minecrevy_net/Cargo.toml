@@ -6,7 +6,6 @@ edition = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-minecrevy_bytes = { workspace = true }
 minecrevy_core = { workspace = true }
 minecrevy_io = { workspace = true }
 minecrevy_protocol = { workspace = true }

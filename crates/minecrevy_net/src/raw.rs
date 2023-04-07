@@ -8,7 +8,10 @@ use minecrevy_bytes::{
     packet::RawPacket,
 };
 use minecrevy_core::channel::Channel;
-use minecrevy_io::PacketMeta;
+use minecrevy_io::{
+    packet::{CodecSettings, RawPacket, RawPacketCodec},
+    PacketMeta,
+};
 use tokio::{
     net::{TcpListener, TcpStream},
     runtime::Runtime,

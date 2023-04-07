@@ -5,12 +5,20 @@ edition = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["codec"]
+codec = ["bytes", "tokio-util"]
+
 [dependencies]
-minecrevy_bytes = { workspace = true }
 minecrevy_core = { workspace = true }
 minecrevy_io_macros = { workspace = true }
 minecrevy_text = { workspace = true }
+# required:
+byteorder = { workspace = true }
 uuid = { workspace = true }
 glam = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+# feature: codec
+bytes = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true, features = ["codec"] }

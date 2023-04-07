@@ -17,7 +17,7 @@
 //! }
 //! ```
 
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 #![feature(array_try_from_fn)]
 
 use std::io::{self, Read, Write};
@@ -25,7 +25,9 @@ use std::io::{self, Read, Write};
 pub use minecrevy_io_macros::{McRead, McWrite, Packet};
 
 mod impls;
+pub mod std_ext;
 pub mod options;
+pub mod packet;
 
 /// The `McRead` trait allows for constructing data types from bytes.
 pub trait McRead: Sized {

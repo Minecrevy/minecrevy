@@ -1,3 +1,5 @@
+//! Extension traits for the builtin [`Read`] and [`Write`] traits.
+
 use std::io::{self, Cursor, Read, Write};
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};

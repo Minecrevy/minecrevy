@@ -1,9 +1,11 @@
 use std::io::{self, Read, Write};
 
-use minecrevy_bytes::blocking::{ReadMinecraftExt, WriteMinecraftExt};
 use uuid::Uuid;
 
-use crate::{McRead, McWrite};
+use crate::{
+    std_ext::{ReadMinecraftExt, WriteMinecraftExt},
+    McRead, McWrite,
+};
 
 impl McRead for Uuid {
     type Options = ();
