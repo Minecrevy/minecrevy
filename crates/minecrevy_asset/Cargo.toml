@@ -1,0 +1,13 @@
+[package]
+name = "minecrevy_asset"
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+minecrevy_asset_macros = { workspace = true }
+minecrevy_core = { workspace = true }
+minecrevy_text = { workspace = true }
+bevy = { workspace = true, default-features = false, features = ["bevy_asset"] }
+derive_more = { workspace = true }

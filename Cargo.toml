@@ -1,0 +1,51 @@
+[workspace]
+members = ["crates/*"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+
+[workspace.dependencies]
+minecrevy_asset = { path = "crates/minecrevy_asset" }
+minecrevy_asset_macros = { path = "crates/minecrevy_asset_macros" }
+minecrevy_asset_vanilla = { path = "crates/minecrevy_asset_vanilla" }
+minecrevy_bytes = { path = "crates/minecrevy_bytes" }
+minecrevy_core = { path = "crates/minecrevy_core" }
+minecrevy_io = { path = "crates/minecrevy_io" }
+minecrevy_io_macros = { path = "crates/minecrevy_io_macros" }
+minecrevy_net = { path = "crates/minecrevy_net" }
+minecrevy_protocol = { path = "crates/minecrevy_protocol" }
+minecrevy_text = { path = "crates/minecrevy_text" }
+async-trait = "0.1"
+bevy = { version = "0.11.0-dev", git = "https://github.com/bevyengine/bevy", default-features = false } 
+byteorder = "1.4"
+bytes = "1.4"
+compact_str = "0.7"
+derive_more = "0.99"
+enumflags2 = "0.7"
+enum-map = "2.4"
+flume = "0.10"
+futures-lite = "1.12"
+futures-util = "0.3"
+glam = "0.23.0"
+hematite-nbt = "0.5"
+ordered-float = "3.4"
+parking_lot = "0.12"
+serde = "1.0"
+serde_json = "1.0"
+smallvec = "1.10"
+strum = "0.24"
+thiserror = "1.0"
+tokio = { version = "1.27", default-features = false }
+tokio-util = { version = "0.7" }
+tokio-stream = { version = "0.1" }
+uuid = "1.3"
+
+[package]
+name = "minecrevy"
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]

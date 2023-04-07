@@ -1,0 +1,22 @@
+[package]
+name = "minecrevy_bytes"
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["async-tokio", "codec"]
+async-tokio = ["async-trait", "tokio"]
+codec = ["bytes", "tokio-util"]
+
+[dependencies]
+# required
+byteorder = { workspace = true }
+uuid = { workspace = true }
+# feature: async-tokio
+async-trait = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true, features = ["io-util"] }
+# feature: codec
+bytes = { workspace = true, optional = true }
+tokio-util = { workspace = true, optional = true, features = ["codec"] }

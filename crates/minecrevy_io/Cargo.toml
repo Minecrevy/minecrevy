@@ -1,0 +1,16 @@
+[package]
+name = "minecrevy_io"
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+minecrevy_bytes = { workspace = true }
+minecrevy_core = { workspace = true }
+minecrevy_io_macros = { workspace = true }
+minecrevy_text = { workspace = true }
+uuid = { workspace = true }
+glam = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

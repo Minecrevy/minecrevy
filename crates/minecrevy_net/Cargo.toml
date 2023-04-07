@@ -1,0 +1,22 @@
+[package]
+name = "minecrevy_net"
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+minecrevy_bytes = { workspace = true }
+minecrevy_core = { workspace = true }
+minecrevy_io = { workspace = true }
+minecrevy_protocol = { workspace = true }
+bevy = { workspace = true, default-features = false }
+derive_more = { workspace = true }
+flume = { workspace = true }
+futures-util = { workspace = true, features = ["sink"] }
+parking_lot = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["macros", "net", "rt", "rt-multi-thread", "sync"] }
+tokio-util = { workspace = true, features = ["codec"] }
+tokio-stream = { workspace = true }
+smallvec = { workspace = true }

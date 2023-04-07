@@ -1,0 +1,16 @@
+[package]
+name = "minecrevy_core"
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+default = ["serde"]
+
+[dependencies]
+bevy = { workspace = true, default-features = false }
+compact_str = { workspace = true }
+flume = { workspace = true }
+serde = { workspace = true, optional = true, features = ["derive"] }
+thiserror = { workspace = true }

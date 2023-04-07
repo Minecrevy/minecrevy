@@ -1,0 +1,83 @@
+# Minecrevy Assets
+
+A catalog of types representing Minecraft registry data.
+
+- [ ] `miencraft:banner_pattern`
+- [ ] `minecraft:activity`
+- [ ] `minecraft:attribute`
+- [x] `minecraft:block_entity_type`
+- [ ] `minecraft:block_predicate_type`
+- [x] `minecraft:block`
+- [ ] `minecraft:cat_variant`
+- [ ] `minecraft:chat_type`
+- [ ] `minecraft:chunk_status`
+- [ ] `minecraft:command_argument_type`
+- [ ] `minecraft:custom_stat`
+- [x] `minecraft:dimension_type`
+- [ ] `minecraft:dimension`
+- [x] `minecraft:enchantment`
+- [x] `minecraft:entity_type`
+- [ ] `minecraft:float_provider_type`
+- [x] `minecraft:fluid`
+- [ ] `minecraft:frog_variant`
+- [ ] `minecraft:game_event`
+- [ ] `minecraft:height_provider_type`
+- [ ] `minecraft:instrument`
+- [ ] `minecraft:int_provider_type`
+- [x] `minecraft:item`
+- [ ] `minecraft:loot_condition_type`
+- [ ] `minecraft:loot_function_type`
+- [ ] `minecraft:loot_nbt_provider_type`
+- [ ] `minecraft:loot_number_provider_type`
+- [ ] `minecraft:loot_pool_entry_type`
+- [ ] `minecraft:loot_score_provider_type`
+- [ ] `minecraft:memory_module_type`
+- [ ] `minecraft:menu`
+- [x] `minecraft:mob_effect`
+- [ ] `minecraft:painting_variant`
+- [x] `minecraft:particle_type`
+- [x] `minecraft:point_of_interest_type`
+- [ ] `minecraft:pos_rule_test`
+- [ ] `minecraft:position_source_type`
+- [x] `minecraft:potion`
+- [ ] `minecraft:recipe_serializer`
+- [ ] `minecraft:recipe_type`
+- [ ] `minecraft:rule_test`
+- [ ] `minecraft:schedule`
+- [ ] `minecraft:sensor_type`
+- [x] `minecraft:sound_event`
+- [ ] `minecraft:stat_type`
+- [x] `minecraft:villager_profession`
+- [x] `minecraft:villager_type`
+- [ ] `minecraft:worldgen/biome_source`
+- [ ] `minecraft:worldgen/biome`
+- [ ] `minecraft:worldgen/block_state_provider_type`
+- [ ] `minecraft:worldgen/carver`
+- [ ] `minecraft:worldgen/chunk_generator`
+- [ ] `minecraft:worldgen/configured_carver`
+- [ ] `minecraft:worldgen/configured_feature`
+- [ ] `minecraft:worldgen/density_function_type`
+- [ ] `minecraft:worldgen/density_function`
+- [ ] `minecraft:worldgen/feature_size_type`
+- [ ] `minecraft:worldgen/feature`
+- [ ] `minecraft:worldgen/flat_level_generator_preset`
+- [ ] `minecraft:worldgen/foliage_placer_type`
+- [ ] `minecraft:worldgen/material_condition`
+- [ ] `minecraft:worldgen/material_rule`
+- [ ] `minecraft:worldgen/noise_settings`
+- [ ] `minecraft:worldgen/noise`
+- [ ] `minecraft:worldgen/placed_feature`
+- [ ] `minecraft:worldgen/placement_modifier_type`
+- [ ] `minecraft:worldgen/processor_list`
+- [ ] `minecraft:worldgen/root_placer_type`
+- [ ] `minecraft:worldgen/structure_piece`
+- [ ] `minecraft:worldgen/structure_placement`
+- [ ] `minecraft:worldgen/structure_pool_element`
+- [ ] `minecraft:worldgen/structure_processor`
+- [ ] `minecraft:worldgen/structure_set`
+- [ ] `minecraft:worldgen/structure_type`
+- [ ] `minecraft:worldgen/structure`
+- [ ] `minecraft:worldgen/template_pool`
+- [ ] `minecraft:worldgen/tree_decorator_type`
+- [ ] `minecraft:worldgen/trunk_placer_type`
+- [ ] `minecraft:worldgen/world_preset`
