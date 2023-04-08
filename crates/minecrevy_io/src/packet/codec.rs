@@ -1,9 +1,15 @@
-use std::{io, sync::Arc};
+use std::{
+    io::{self, Cursor},
+    sync::Arc,
+};
 
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
-use crate::packet::RawPacket;
+use crate::{
+    packet::RawPacket,
+    std_ext::{ReadMinecraftExt, WriteMinecraftExt},
+};
 
 /// Settings for the [`RawPacketCodec`].
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
@@ -47,15 +53,30 @@ impl Decoder for RawPacketCodec {
     type Item = RawPacket;
     type Error = io::Error;
 
-    fn decode(&mut self, _src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        todo!()
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        // TODO: compression & encryption
+        let mut cursor = Cursor::<&[u8]>::new(&src);
+        match cursor.read_packet() {
+            Ok(packet) => {
+                // reading was successful, advance the outer buffer and return
+                let position = usize::try_from(cursor.position()).unwrap();
+                src.advance(position);
+                Ok(Some(packet))
+            }
+            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => Ok(None),
+            Err(e) => Err(e),
+        }
     }
 }
 
 impl Encoder<RawPacket> for RawPacketCodec {
     type Error = io::Error;
 
-    fn encode(&mut self, _packet: RawPacket, _dst: &mut BytesMut) -> Result<(), Self::Error> {
-        todo!()
+    fn encode(&mut self, packet: RawPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        // TODO: compression & encryption
+        let mut bytes = Vec::new();
+        bytes.write_packet(&packet)?;
+        dst.extend_from_slice(&bytes);
+        Ok(())
     }
 }
