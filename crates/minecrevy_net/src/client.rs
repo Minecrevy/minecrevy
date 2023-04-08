@@ -1,8 +1,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use bevy::{ecs::query::WorldQuery, prelude::*};
-use minecrevy_bytes::packet::RawPacket;
-use minecrevy_io::{McRead, McWrite, Packet};
+use minecrevy_io::{packet::RawPacket, McRead, McWrite, Packet};
 
 use crate::{
     packet::{PacketBuffer, Packets, ProtocolState},

@@ -7,8 +7,7 @@ use std::{
 };
 
 use bevy::{prelude::*, utils::HashMap};
-use minecrevy_bytes::packet::RawPacket;
-use minecrevy_io::{McRead, McWrite, Packet};
+use minecrevy_io::{packet::RawPacket, McRead, McWrite, Packet};
 use minecrevy_protocol::version::ProtocolVersion;
 
 /// A [`Plugin`] that provides a [`VersionedPackets`] [`Resource`].

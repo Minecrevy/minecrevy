@@ -3,10 +3,6 @@ use std::{io, net::SocketAddr, sync::Arc};
 use bevy::prelude::*;
 use flume::{Receiver, Sender};
 use futures_util::SinkExt;
-use minecrevy_bytes::{
-    codec::{CodecSettings, RawPacketCodec},
-    packet::RawPacket,
-};
 use minecrevy_core::channel::Channel;
 use minecrevy_io::{
     packet::{CodecSettings, RawPacket, RawPacketCodec},
