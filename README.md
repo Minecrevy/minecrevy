@@ -1,6 +1,14 @@
 # Minecrevy
 
-A Minecraft server implementation written in [Rust](https://rust-lang.org), using the [Bevy](https://bevyengine.org) game engine.
+## What is Minecrevy?
+
+A Minecraft server API written in [Rust](https://rust-lang.org), powered by the [Bevy](https://bevyengine.org) game engine.
+
+## Design Goals
+
+- **Modular**: Use what you want, replace what you don't.
+- **Unified**: Easily share common components between your game server and server proxy.
+- **Fast**: Run many entities and chunks with a parallel-first architecture.
 
 ## Community
 
