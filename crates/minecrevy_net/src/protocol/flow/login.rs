@@ -1,9 +1,9 @@
 use bevy::{prelude::*, utils::HashSet};
 use minecrevy_core::key::Key;
 
-use crate::{
+use crate::protocol::{
     client::{Client, ClientEntered},
-    packet::Login,
+    state::Login,
 };
 
 /// Adds systems to handle the Minecraft protocol login flow.
@@ -24,15 +24,13 @@ impl LoginFlowPlugin {
     ) {
         // Begin channel negotiations
         for (entity, _) in &clients {
-            commands
-                .entity(entity)
-                .insert(FinishedLoginHandlers::default());
+            commands.entity(entity).insert(FinishedHandlers::default());
         }
     }
 
     pub fn finish_login(
         all_channels: Res<LoginHandlers>,
-        clients: Query<(Client<Login>, &FinishedLoginHandlers), Changed<FinishedLoginHandlers>>,
+        clients: Query<(Client<Login>, &FinishedHandlers), Changed<FinishedHandlers>>,
     ) {
         for (client, channels) in &clients {
             // Send Login Success if all channels are finished negotiating.
@@ -57,18 +55,16 @@ impl AppLoginFlowExt for App {
     }
 }
 
-pub struct EncryptionRequested();
-
 /// The set of [`LoginHandler`]s that have finished negotation for a given client.
 /// Login flow for a client will not be ended until this set is a superset of the
 /// [set of all registered channels](LoginHandlers).
 ///
 /// A login flow channel can signal it is finished negotating by inserting its [`ChannelKey`]
-/// with [`FinishedLoginHandlers::finish`].
+/// with [`FinishedHandlers::finish`].
 #[derive(Component, Deref, Default)]
-pub struct FinishedLoginHandlers(HashSet<LoginHandler>);
+pub struct FinishedHandlers(HashSet<LoginHandler>);
 
-impl FinishedLoginHandlers {
+impl FinishedHandlers {
     /// Adds the given channel to the set of finished channels.
     pub fn finish(&mut self, channel: LoginHandler) {
         self.0.insert(channel);

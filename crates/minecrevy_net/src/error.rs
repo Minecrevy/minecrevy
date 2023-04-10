@@ -3,6 +3,8 @@ use std::{io, net::SocketAddr};
 use minecrevy_io::Packet;
 use thiserror::Error;
 
+use crate::protocol::version::ProtocolVersion;
+
 #[derive(Error, Debug)]
 pub enum ServerError {
     #[error("error during bind(): {0}")]
@@ -16,13 +18,13 @@ pub enum ClientError {
     #[error("client disconnected: {0}")]
     Disconnected(SocketAddr),
     #[error("unregistered packet type: {0}")]
-    UnregisteredPacket(&'static str),
+    UnregisteredPacket(&'static str, ProtocolVersion),
     #[error(transparent)]
     PacketIo(#[from] io::Error),
 }
 
 impl ClientError {
-    pub fn unregistered<T: Packet>() -> Self {
-        Self::UnregisteredPacket(std::any::type_name::<T>())
+    pub fn unregistered<T: Packet>(version: ProtocolVersion) -> Self {
+        Self::UnregisteredPacket(std::any::type_name::<T>(), version)
     }
 }

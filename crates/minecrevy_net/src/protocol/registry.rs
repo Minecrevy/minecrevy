@@ -9,7 +9,7 @@ use std::{
 use bevy::prelude::*;
 use minecrevy_io::{McRead, McWrite, Packet};
 
-use crate::{state::ProtocolState, version::ProtocolVersion};
+use crate::protocol::{state::ProtocolState, version::ProtocolVersion};
 
 /// A read-only [`Resource`] map that stores a registry of incoming and outgoing
 /// `Packet Type -> Packet ID` entries, grouped by [`ProtocolVersion`].
@@ -17,6 +17,16 @@ use crate::{state::ProtocolState, version::ProtocolVersion};
 pub struct VersionedPackets<S: ProtocolState>(BTreeMap<ProtocolVersion, Arc<Packets<S>>>);
 
 impl<S: ProtocolState> VersionedPackets<S> {
+    /// Gets the minimum supported [`ProtocolVersion`] and its packet registry.
+    pub fn min(&self) -> Option<(ProtocolVersion, &Arc<Packets<S>>)> {
+        self.0.first_key_value().map(|(v, registry)| (*v, registry))
+    }
+
+    #[inline]
+    pub fn get(&self, version: ProtocolVersion) -> Option<&Arc<Packets<S>>> {
+        self.0.get(&version)
+    }
+
     /// Gets the ID of the provided [`Packet`] type for the specified [`ProtocolVersion`].
     pub fn incoming<T: Packet + McRead>(&self, version: ProtocolVersion) -> Option<i32> {
         self.0
@@ -38,10 +48,21 @@ impl<S: ProtocolState> Default for VersionedPackets<S> {
     }
 }
 
+/// A mutable version of [`VersionedPackets`], only available during [`Startup`].
 #[derive(Resource)]
 pub struct VersionedPacketsBuilder<S: ProtocolState>(BTreeMap<ProtocolVersion, Packets<S>>);
 
 impl<S: ProtocolState> VersionedPacketsBuilder<S> {
+    /// Constructs a packet registry builder that supports the specified [`ProtocolVersion`]s.
+    pub fn new(versions: impl IntoIterator<Item = ProtocolVersion>) -> Self {
+        Self(
+            versions
+                .into_iter()
+                .map(|v| (v, Packets::default()))
+                .collect(),
+        )
+    }
+
     /// Registers the specified [`Packet`] type to the specified packet ID, for the specified [`ProtocolVersion`]s.
     pub fn add_incoming<T: Packet + McRead>(
         &mut self,
@@ -67,19 +88,13 @@ impl<S: ProtocolState> VersionedPacketsBuilder<S> {
     }
 
     /// Constructs a read-only [`VersionedPackets`] registry.
-    pub fn build(&self) -> VersionedPackets<S> {
+    pub fn build(self) -> VersionedPackets<S> {
         VersionedPackets(
             self.0
-                .iter()
-                .map(|(version, registry)| (*version, Arc::new(registry.clone())))
+                .into_iter()
+                .map(|(version, registry)| (version, Arc::new(registry)))
                 .collect(),
         )
-    }
-}
-
-impl<S: ProtocolState> Default for VersionedPacketsBuilder<S> {
-    fn default() -> Self {
-        Self(BTreeMap::default())
     }
 }
 
