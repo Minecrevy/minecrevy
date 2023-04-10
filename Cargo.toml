@@ -9,7 +9,6 @@ version = "0.1.0"
 minecrevy_asset = { path = "crates/minecrevy_asset" }
 minecrevy_asset_macros = { path = "crates/minecrevy_asset_macros" }
 minecrevy_asset_vanilla = { path = "crates/minecrevy_asset_vanilla" }
-minecrevy_bytes = { path = "crates/minecrevy_bytes" }
 minecrevy_core = { path = "crates/minecrevy_core" }
 minecrevy_io = { path = "crates/minecrevy_io" }
 minecrevy_io_macros = { path = "crates/minecrevy_io_macros" }
@@ -49,3 +48,12 @@ edition = { workspace = true }
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+minecrevy_asset = { workspace = true }
+minecrevy_asset_macros = { workspace = true }
+minecrevy_asset_vanilla = { workspace = true }
+minecrevy_core = { workspace = true }
+minecrevy_io = { workspace = true }
+minecrevy_io_macros = { workspace = true }
+minecrevy_net = { workspace = true }
+minecrevy_protocol = { workspace = true }
+minecrevy_text = { workspace = true }
