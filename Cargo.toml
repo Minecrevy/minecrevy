@@ -12,6 +12,7 @@ minecrevy_asset_vanilla = { path = "crates/minecrevy_asset_vanilla" }
 minecrevy_core = { path = "crates/minecrevy_core" }
 minecrevy_io = { path = "crates/minecrevy_io" }
 minecrevy_io_macros = { path = "crates/minecrevy_io_macros" }
+minecrevy_nbt = { path = "crates/minecrevy_nbt" }
 minecrevy_net = { path = "crates/minecrevy_net" }
 minecrevy_text = { path = "crates/minecrevy_text" }
 async-trait = "0.1"
