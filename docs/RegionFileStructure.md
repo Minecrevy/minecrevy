@@ -72,7 +72,7 @@ The following table is generally how a region file is laid out.
 </tr>
 <tr>
     <td rowspan="5">Chunk B</td>
-    <td rowspan="3">Sector 1</td>
+    <td rowspan="3">Sector 6</td>
     <td>Length</td>
     <td>int32</td>
     <td>Chunk data length.</td>
@@ -88,7 +88,7 @@ The following table is generally how a region file is laid out.
     <td rowspan="3">Chunk data.</td>
 </tr>
 <tr>
-    <td>Sector 2</td>
+    <td>Sector 7</td>
     <td>Data</td>
     <td>Array of 4096 bytes</td>
 </tr>
