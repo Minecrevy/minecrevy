@@ -7,7 +7,7 @@ const CHUNKS_PER_REGION_AXIS: i32 = 32;
 /// Region coordinates.
 #[derive(Component, Deref, DerefMut)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Default)]
-pub struct RegionPos(pub IVec2);
+pub struct RegionPos(IVec2);
 
 impl From<ChunkPos> for RegionPos {
     fn from(chunk: ChunkPos) -> Self {
@@ -21,7 +21,7 @@ impl From<ChunkPos> for RegionPos {
 /// Region-local [`ChunkPos`]. In comparison, normal [`ChunkPos`] are world-local.
 #[derive(Component, Deref, DerefMut)]
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Hash, Default)]
-pub struct RegionLocalChunkPos(pub UVec2);
+pub struct RegionLocalChunkPos(UVec2);
 
 impl RegionLocalChunkPos {
     /// Converts this region-local chunk position into an index for the offset and timestamp table.
