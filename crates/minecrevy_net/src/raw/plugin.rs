@@ -14,7 +14,7 @@ impl Plugin for RawNetworkPlugin {
             PreUpdate,
             (
                 Self::accept_clients.run_if(Self::is_accepting_clients),
-                Self::despawn_disconnected_clients,
+                Self::despawn_clients,
             ),
         );
     }
@@ -35,13 +35,23 @@ impl RawNetworkPlugin {
         }
     }
 
-    pub fn despawn_disconnected_clients(
-        mut commands: Commands,
-        clients: Query<(Entity, &RawClient)>,
-    ) {
+    /// A [`System`] that despawns [`RawClient`]s who've disconnected or encountered I/O errors.
+    pub fn despawn_clients(mut commands: Commands, clients: Query<(Entity, &RawClient)>) {
         for (entity, client) in &clients {
+            let _net = error_span!("net", client = %client.addr()).entered();
+
             if !client.is_connected() {
-                debug!(client = %client.addr(), "client disconnected");
+                debug!("client disconnected");
+                commands.entity(entity).despawn();
+                continue;
+            }
+
+            let mut disconnect = false;
+            for error in client.errors() {
+                error!(error = ?error, "client error");
+                disconnect = true;
+            }
+            if disconnect {
                 commands.entity(entity).despawn();
             }
         }

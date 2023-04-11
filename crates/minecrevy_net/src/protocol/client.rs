@@ -28,7 +28,7 @@ pub type ClientIn<S> = With<PacketQueue<S>>;
 #[world_query(mutable)]
 pub struct Client<S: ProtocolState> {
     /// The socket connection.
-    connection: &'static RawClient,
+    pub(crate) raw: &'static RawClient,
     /// The queue for incoming packets.
     queue: &'static mut PacketQueue<S>,
     /// The map of Packet Type => Packet ID.
@@ -40,67 +40,80 @@ pub struct Client<S: ProtocolState> {
 impl<S: ProtocolState> ClientItem<'_, S> {
     /// Returns the [`SocketAddr`] of this client.
     pub fn addr(&self) -> SocketAddr {
-        self.connection.addr()
+        self.raw.addr()
     }
 
-    pub fn read<T: Packet + McRead>(&mut self) -> Option<Result<T, ClientError>> {
+    pub fn read<T: Packet + McRead>(&mut self) -> Option<T> {
         let Some(id) = self.registry.incoming::<T>() else {
             let version = self
                 .info
                 .map(|i| i.version)
                 .unwrap_or(ReleaseVersion::V1_7_2.v());
-            return Some(Err(ClientError::unregistered::<T>(version)));
+            self.raw.error(ClientError::unregistered::<T>(version));
+            return None;
         };
 
         // check the queue for a matching packet
         if let Some(packet) = self.queue.pop(id) {
-            let decoded = T::read_default(packet.reader()).map_err(ClientError::PacketIo);
+            match T::read_default(packet.reader()) {
+                Ok(decoded) => return Some(decoded),
+                Err(error) => {
+                    self.raw.error(ClientError::PacketIo(error));
+                    return None;
+                }
+            }
             // if let Some(meta) = T::meta() { TODO
             //     self.connection.meta(meta);
             // }
-            return Some(decoded);
         }
 
         // if the queue was empty,
         // check the socket for a matching packet
-        for packet in self.connection.iter() {
+        for packet in self.raw.iter() {
             if packet.id != id {
                 // TODO: only save registered packets?
                 self.queue.push(packet);
                 continue;
             }
 
-            let decoded = T::read_default(packet.reader()).map_err(ClientError::PacketIo);
+            match T::read_default(packet.reader()) {
+                Ok(decoded) => return Some(decoded),
+                Err(error) => {
+                    self.raw.error(ClientError::PacketIo(error));
+                    return None;
+                }
+            }
             // if let Some(meta) = T::meta() { TODO
             //     self.connection.meta(meta);
             // }
-            return Some(decoded);
         }
 
         None
     }
 
-    pub fn write<T: Packet + McWrite>(&mut self, packet: T) -> Result<(), ClientError> {
+    pub fn write<T: Packet + McWrite>(&mut self, packet: T) {
         let Some(id) = self.registry.outgoing::<T>() else {
             let version = self
                 .info
                 .map(|i| i.version)
                 .unwrap_or(ReleaseVersion::V1_7_2.v());
-            return Err(ClientError::unregistered::<T>(version));
+            self.raw.error(ClientError::unregistered::<T>(version));
+            return;
         };
 
         let mut raw = RawPacket {
             id,
             body: Vec::new(),
         };
-        packet.write_default(raw.writer())?;
-
-        self.connection.send(raw);
-        if let Some(meta) = T::meta() {
-            self.connection.meta(meta);
+        if let Err(error) = packet.write_default(raw.writer()) {
+            self.raw.error(ClientError::PacketIo(error));
+            return;
         }
 
-        Ok(())
+        self.raw.send(raw);
+        if let Some(meta) = T::meta() {
+            self.raw.meta(meta);
+        }
     }
 }
 

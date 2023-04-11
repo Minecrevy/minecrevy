@@ -1,8 +1,9 @@
-use std::{io, net::SocketAddr, sync::Arc};
+use std::{net::SocketAddr, sync::Arc};
 
 use bevy::prelude::*;
 use flume::{Receiver, Sender};
 use futures_util::SinkExt;
+use minecrevy_core::channel::Channel;
 use minecrevy_io::{
     packet::{CodecSettings, RawPacket, RawPacketCodec},
     PacketMeta,
@@ -14,7 +15,7 @@ use tokio::{
 use tokio_stream::StreamExt;
 use tokio_util::codec::Framed;
 
-use crate::raw::server::RawServer;
+use crate::{error::ClientError, raw::server::RawServer};
 
 /// A Minecraft client connection.
 #[derive(Component)]
@@ -29,7 +30,7 @@ pub struct RawClient {
     /// We need it for [`tokio::select!`].
     outgoing: TokioSender<WriteOp>,
     /// The channel for receiving errors from the `io_task`.
-    errors: Receiver<io::Error>,
+    errors: Channel<ClientError>,
 }
 
 /// Public API
@@ -38,6 +39,7 @@ impl RawClient {
         let (incoming_tx, incoming_rx) = flume::unbounded();
         let (outgoing_tx, outgoing_rx) = tokio::sync::mpsc::unbounded_channel();
         let (errors_tx, errors_rx) = flume::unbounded();
+        let errors = Channel::from((errors_tx.clone(), errors_rx));
 
         let codec = Arc::clone(server.codec());
 
@@ -49,7 +51,7 @@ impl RawClient {
             addr,
             incoming: incoming_rx,
             outgoing: outgoing_tx,
-            errors: errors_rx,
+            errors,
         }
     }
 
@@ -80,9 +82,13 @@ impl RawClient {
         self.incoming.try_iter()
     }
 
-    /// Returns an iterator ofa ll received I/O errors.
-    pub fn errors(&self) -> impl Iterator<Item = io::Error> + '_ {
-        self.errors.try_iter()
+    /// Returns an iterator of all received I/O errors.
+    pub fn errors(&self) -> impl Iterator<Item = ClientError> + '_ {
+        self.errors.recv.try_iter()
+    }
+
+    pub(crate) fn error(&self, err: ClientError) {
+        self.errors.send.try_send(err).ok();
     }
 }
 
@@ -93,7 +99,7 @@ impl RawClient {
         codec: Arc<CodecSettings>,
         incoming: Sender<RawPacket>,
         mut outgoing: TokioReceiver<WriteOp>,
-        errors: Sender<io::Error>,
+        errors: Sender<ClientError>,
     ) {
         let mut stream = Framed::new(stream, RawPacketCodec::new(codec));
 
@@ -104,12 +110,11 @@ impl RawClient {
                         Some(Ok(packet)) => {
                             incoming.try_send(packet).unwrap_or_else(|e| unreachable!("{e}"));
                         }
-                        Some(Err(e)) => {
-                            errors.try_send(e).unwrap_or_else(|e| unreachable!("{e}"));
+                        Some(Err(error)) => {
+                            errors.try_send(error.into()).unwrap_or_else(|e| unreachable!("{e}"));
                         }
                         None => {
-                            let error = io::Error::new(io::ErrorKind::ConnectionAborted, "connection closed");
-                            errors.try_send(error).unwrap_or_else(|e| unreachable!("{e}"));
+                            // disconnected from client side
                             break;
                         }
                     }
@@ -117,8 +122,8 @@ impl RawClient {
                 op = outgoing.recv() => {
                     match op {
                         Some(WriteOp::Packet(packet)) => {
-                            if let Err(e) = stream.send(packet).await {
-                                errors.try_send(e).unwrap_or_else(|e| unreachable!("{e}"));
+                            if let Err(error) = stream.send(packet).await {
+                                errors.try_send(error.into()).unwrap_or_else(|e| unreachable!("{e}"));
                             }
                         }
                         Some(WriteOp::Meta(PacketMeta::EnableCompression)) => {
@@ -128,13 +133,12 @@ impl RawClient {
                             stream.codec_mut().enable_encryption();
                         }
                         Some(WriteOp::Flush) => {
-                            if let Err(e) = stream.flush().await {
-                                errors.try_send(e).unwrap_or_else(|e| unreachable!("{e}"));
+                            if let Err(error) = stream.flush().await {
+                                errors.try_send(error.into()).unwrap_or_else(|e| unreachable!("{e}"));
                             }
                         }
                         None => {
-                            let error = io::Error::new(io::ErrorKind::ConnectionAborted, "connection closed");
-                            errors.try_send(error).ok();
+                            // disconnected from server side
                             break;
                         }
                     }
