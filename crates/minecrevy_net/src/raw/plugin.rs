@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::raw::server::RawServer;
+use crate::raw::{server::RawServer, RawClient};
 
 /// Inserts the [`RawServer`] resource and adds the neccessary systems for it to receive connections.
 #[derive(Default)]
@@ -12,7 +12,10 @@ impl Plugin for RawNetworkPlugin {
 
         app.add_systems(
             PreUpdate,
-            Self::accept_clients.run_if(Self::is_accepting_clients),
+            (
+                Self::accept_clients.run_if(Self::is_accepting_clients),
+                Self::despawn_disconnected_clients,
+            ),
         );
     }
 }
@@ -29,6 +32,18 @@ impl RawNetworkPlugin {
     pub fn accept_clients(mut commands: Commands, server: Res<RawServer>) {
         while let Some(client) = server.try_accept() {
             commands.spawn(client);
+        }
+    }
+
+    pub fn despawn_disconnected_clients(
+        mut commands: Commands,
+        clients: Query<(Entity, &RawClient)>,
+    ) {
+        for (entity, client) in &clients {
+            if !client.is_connected() {
+                debug!(client = %client.addr(), "client disconnected");
+                commands.entity(entity).despawn();
+            }
         }
     }
 }

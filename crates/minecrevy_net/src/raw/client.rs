@@ -53,6 +53,11 @@ impl RawClient {
         }
     }
 
+    /// Returns `true` if this client is an active connection.
+    pub fn is_connected(&self) -> bool {
+        !self.incoming.is_disconnected()
+    }
+
     /// Returns the [`SocketAddr`] corresponding to this connection.
     pub fn addr(&self) -> SocketAddr {
         self.addr
@@ -129,7 +134,7 @@ impl RawClient {
                         }
                         None => {
                             let error = io::Error::new(io::ErrorKind::ConnectionAborted, "connection closed");
-                            errors.try_send(error).unwrap_or_else(|e| unreachable!("{e}"));
+                            errors.try_send(error).ok();
                             break;
                         }
                     }
