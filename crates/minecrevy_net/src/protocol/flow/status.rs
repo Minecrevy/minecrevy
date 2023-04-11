@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::protocol::{
-    client::Client,
+    client::{Client, ClientEntered, ClientIn},
     flow::handshake::ClientInfo,
     registry::VersionedPacketsBuilder,
-    state::Status,
+    state::{Play, Status},
     version::{ProtocolVersion, ReleaseVersion},
 };
 
@@ -43,8 +43,9 @@ impl StatusFlowPlugin {
         mut commands: Commands,
         global_resp: Option<Res<Response>>,
         mut clients: Query<(Entity, Client<Status>, &ClientInfo, Option<&Response>)>,
+        players: Query<(), ClientIn<Play>>,
     ) {
-        let num_clients = clients.iter().count();
+        let num_players = players.iter().count();
 
         for (entity, mut client, info, client_resp) in &mut clients {
             let mut entity = commands.entity(entity);
@@ -71,7 +72,7 @@ impl StatusFlowPlugin {
                             version: info.version.into(),
                             players: ResponsePlayers {
                                 max: 1000,
-                                online: num_clients as i32,
+                                online: num_players as i32,
                                 sample: vec![],
                             },
                             description: Text::str("A Minecraft server."),
