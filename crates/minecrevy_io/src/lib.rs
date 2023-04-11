@@ -25,9 +25,9 @@ use std::io::{self, Read, Write};
 pub use minecrevy_io_macros::{McRead, McWrite, Packet};
 
 mod impls;
-pub mod std_ext;
 pub mod options;
 pub mod packet;
+pub mod std_ext;
 
 /// The `McRead` trait allows for constructing data types from bytes.
 pub trait McRead: Sized {
