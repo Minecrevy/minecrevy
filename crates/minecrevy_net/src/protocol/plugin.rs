@@ -1,10 +1,12 @@
+use std::net::SocketAddr;
+
 use bevy::{app::PluginGroupBuilder, prelude::*};
 
 use crate::{
     protocol::flow::{
         handshake::HandshakeFlowPlugin, login::LoginFlowPlugin, status::StatusFlowPlugin,
     },
-    raw::RawNetworkPlugin,
+    raw::{RawNetworkPlugin, RawServer},
 };
 
 /// This [`PluginGroup`] will add all the default networking plugins needed to handle
@@ -36,5 +38,11 @@ impl PluginGroup for MinimalNetworkPlugins {
         PluginGroupBuilder::start::<Self>()
             .add(RawNetworkPlugin)
             .add(HandshakeFlowPlugin)
+    }
+}
+
+pub fn listen(addr: SocketAddr) -> impl FnMut(ResMut<RawServer>) {
+    move |mut server| {
+        server.listen(addr);
     }
 }
