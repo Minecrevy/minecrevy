@@ -1,0 +1,12 @@
+[package]
+name = "minecrevy_anvil"
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+minecrevy_chunk = { workspace = true }
+minecrevy_nbt = { workspace = true }
+bevy = { workspace = true }
+byteorder = { workspace = true }
