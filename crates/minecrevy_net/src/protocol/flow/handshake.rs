@@ -86,11 +86,13 @@ impl HandshakeFlowPlugin {
         }
 
         for (entity, mut client) in &mut clients {
+            let _handshake = debug_span!("handshake", client = %client.addr()).entered();
+
             let mut entity = commands.entity(entity);
 
             let Some(handshake) = client.read::<HandshakePacket>() else { continue; };
             let Ok(handshake) = handshake else {
-                error!(client = %client.addr(), "received malformed handshake packet");
+                error!("received malformed handshake packet");
                 entity.despawn();
                 continue
             };
