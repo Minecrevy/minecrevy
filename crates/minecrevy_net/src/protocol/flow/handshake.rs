@@ -1,11 +1,14 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
 use minecrevy_io::{McRead, McWrite, Packet};
 
-use crate::protocol::{
-    client::{Client, ClientConnected, PacketQueue, PacketRegistry},
-    registry::{Packets, VersionedPackets, VersionedPacketsBuilder},
-    state::{Handshake, Login, ProtocolState, Status},
-    version::{ProtocolVersion, ReleaseVersion},
+use crate::{
+    error::ClientError,
+    protocol::{
+        client::{Client, ClientConnected, ClientItem, PacketQueue, PacketRegistry},
+        registry::{Packets, VersionedPackets, VersionedPacketsBuilder},
+        state::{Handshake, Login, ProtocolState, Status},
+        version::{ProtocolVersion, ReleaseVersion},
+    },
 };
 
 /// A [`SystemSet`] for handling packets as part of the protocol handshake.
@@ -21,7 +24,7 @@ impl Plugin for HandshakeFlowPlugin {
 
         app.add_systems(
             PreUpdate,
-            (Self::start_handshake, Self::handshake)
+            (Self::begin_handshake, Self::handshake)
                 .chain()
                 .in_set(HandshakeFlow),
         );
@@ -36,7 +39,7 @@ impl HandshakeFlowPlugin {
     }
 
     /// Inserts components to enable [`Client<Handshake>`] querying.
-    fn start_handshake(
+    fn begin_handshake(
         mut commands: Commands,
         handshake: Res<VersionedPackets<Handshake>>,
         clients: Query<Entity, ClientConnected>,
@@ -65,24 +68,27 @@ impl HandshakeFlowPlugin {
     ) {
         fn change_state<S: ProtocolState>(
             entity: &mut EntityCommands,
+            client: ClientItem<Handshake>,
             state: &VersionedPackets<S>,
-            version: ProtocolVersion,
-        ) -> bool {
-            let Some(registry) = state.get(version) else {
-                warn!(
+            handshake: HandshakePacket,
+        ) {
+            let Some(registry) = state.get(handshake.version) else {
+                let msg = format!(
                     "{} registry does not exist, cannot enter {} flow without one.",
                     std::any::type_name::<Packets<S>>(),
                     std::any::type_name::<S>()
                 );
-                entity.despawn();
-                return false;
+                client.raw.error(ClientError::ISE(msg));
+                return;
             };
 
-            entity.insert((
-                PacketQueue::<S>::default(),
-                PacketRegistry(registry.clone()),
-            ));
-            return true;
+            entity
+                .insert((
+                    PacketQueue::<S>::default(),
+                    PacketRegistry(registry.clone()),
+                    ClientInfo::from(handshake),
+                ))
+                .remove::<(PacketQueue<Handshake>, PacketRegistry<Handshake>)>();
         }
 
         for (entity, mut client) in &mut clients {
@@ -90,26 +96,12 @@ impl HandshakeFlowPlugin {
 
             let mut entity = commands.entity(entity);
 
-            let Some(handshake) = client.read::<HandshakePacket>() else { continue; };
-            let Ok(handshake) = handshake else {
-                error!("received malformed handshake packet");
-                entity.despawn();
-                continue
-            };
-
-            match handshake.next {
-                NextState::Status => {
-                    if !change_state(&mut entity, &status, handshake.version) {
-                        continue;
-                    }
-                }
-                NextState::Login => {
-                    if !change_state(&mut entity, &login, handshake.version) {
-                        continue;
-                    }
+            if let Some(handshake) = client.read::<HandshakePacket>() {
+                match handshake.next {
+                    NextState::Status => change_state(&mut entity, client, &status, handshake),
+                    NextState::Login => change_state(&mut entity, client, &login, handshake),
                 }
             }
-            entity.insert(ClientInfo::from(handshake));
         }
     }
 }

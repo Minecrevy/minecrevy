@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::protocol::{
-    client::{Client, ClientEntered, ClientIn},
+    client::{Client, ClientIn},
     flow::handshake::ClientInfo,
     registry::VersionedPacketsBuilder,
     state::{Play, Status},
@@ -24,7 +24,6 @@ pub struct StatusFlowPlugin;
 impl Plugin for StatusFlowPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, Self::register_packets);
-
         app.add_systems(PreUpdate, Self::status.in_set(StatusFlow));
     }
 }
@@ -40,30 +39,17 @@ impl StatusFlowPlugin {
     }
 
     fn status(
-        mut commands: Commands,
         global_resp: Option<Res<Response>>,
-        mut clients: Query<(Entity, Client<Status>, &ClientInfo, Option<&Response>)>,
+        mut clients: Query<(Client<Status>, &ClientInfo, Option<&Response>)>,
         players: Query<(), ClientIn<Play>>,
     ) {
         let num_players = players.iter().count();
 
-        for (entity, mut client, info, client_resp) in &mut clients {
-            let mut entity = commands.entity(entity);
-
+        for (mut client, info, client_resp) in &mut clients {
             if let Some(ping) = client.read::<PingRequest>() {
-                let Ok(ping) = ping else {
-                    entity.despawn();
-                    continue;
-                };
-
-                client.write(ping).unwrap();
+                client.write(ping);
             }
-            if let Some(req) = client.read::<StatusRequest>() {
-                let Ok(_) = req else {
-                    entity.despawn();
-                    continue;
-                };
-
+            if let Some(_) = client.read::<StatusRequest>() {
                 let response =
                     client_resp
                         .or(global_resp.as_deref())
@@ -79,10 +65,14 @@ impl StatusFlowPlugin {
                             favicon: None,
                             enforces_secure_chat: false,
                         });
-                client.write(StatusResponse(response)).unwrap();
+                client.write(StatusResponse(response));
             }
         }
     }
+}
+
+pub struct Motd {
+    pub description: Text,
 }
 
 /// Sent by the client to request latency information.
@@ -163,6 +153,7 @@ impl McWrite for Response {
     fn write<W: io::Write>(&self, writer: W, _: Self::Options) -> io::Result<()> {
         let str = serde_json::to_string(self)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        debug!("response: {str}");
 
         String::write(
             &str,
