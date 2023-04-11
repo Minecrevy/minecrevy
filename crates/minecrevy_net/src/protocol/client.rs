@@ -20,6 +20,9 @@ pub type ClientConnected = Added<RawClient>;
 /// [`Query`] filter for clients who've entered a new [`ProtocolState`] `S`.
 pub type ClientEntered<S> = Added<PacketQueue<S>>;
 
+/// [`Query`] filter for clients who are currently in [`ProtocolState`] `S`.
+pub type ClientIn<S> = With<PacketQueue<S>>;
+
 /// A [`WorldQuery`] for ergonomically interacting with Minecraft clients.
 #[derive(WorldQuery)]
 #[world_query(mutable)]
