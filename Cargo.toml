@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "apps/*"]
 
 [workspace.package]
 edition = "2021"
@@ -13,7 +13,6 @@ minecrevy_core = { path = "crates/minecrevy_core" }
 minecrevy_io = { path = "crates/minecrevy_io" }
 minecrevy_io_macros = { path = "crates/minecrevy_io_macros" }
 minecrevy_net = { path = "crates/minecrevy_net" }
-minecrevy_protocol = { path = "crates/minecrevy_protocol" }
 minecrevy_text = { path = "crates/minecrevy_text" }
 async-trait = "0.1"
 bevy = { version = "0.11.0-dev", git = "https://github.com/bevyengine/bevy", default-features = false } 
@@ -55,5 +54,4 @@ minecrevy_core = { workspace = true }
 minecrevy_io = { workspace = true }
 minecrevy_io_macros = { workspace = true }
 minecrevy_net = { workspace = true }
-minecrevy_protocol = { workspace = true }
 minecrevy_text = { workspace = true }
