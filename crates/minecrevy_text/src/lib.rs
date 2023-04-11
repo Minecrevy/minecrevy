@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{borrow::Cow, hash::Hash};
 
 use minecrevy_core::key::Key;
@@ -12,12 +13,14 @@ mod style;
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Text {
-    #[cfg_attr(feature = "serde", serde(flatten))]
     pub content: TextContent,
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub style: TextStyle,
     // TODO: Vec<Text> --> Cow<'static, [Text]> after rustc bug fixed
-    #[cfg_attr(feature = "serde", serde(rename = "extra"))]
+    #[cfg_attr(
+        feature = "serde",
+        serde(rename = "extra", default, skip_serializing_if = "Vec::is_empty")
+    )]
     pub children: Vec<Text>,
 }
 
@@ -121,6 +124,22 @@ impl Default for Text {
     }
 }
 
+impl fmt::Display for Text {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut content = self
+            .content
+            .as_string()
+            .map(|v| v.to_string())
+            .unwrap_or(String::new());
+
+        for child in self.children() {
+            content.push_str(&child.to_string());
+        }
+
+        write!(f, "{content}")
+    }
+}
+
 /// The content of a [`Text`] component.
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -189,7 +208,7 @@ impl TextContent {
 
 #[cfg(test)]
 mod tests {
-    use crate::{Text, TextStyle};
+    use crate::{Text, TextColor, TextStyle};
 
     #[test]
     fn constants() {
@@ -209,5 +228,22 @@ mod tests {
 
         assert_eq!(Some("bar"), owned.content.as_string());
         assert_eq!(TextStyle::empty(), owned.style);
+    }
+
+    #[test]
+    fn to_string() {
+        let text = Text::str("foo").with_children([Text::str("bar"), Text::str("baz")]);
+
+        assert_eq!(text.to_string(), "foobarbaz");
+    }
+
+    #[test]
+    fn serialization() {
+        let original = Text::str("foo").with_color(TextColor::RED);
+
+        let json = serde_json::to_string(&original).unwrap();
+        let decoded = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(original, decoded);
     }
 }
