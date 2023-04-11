@@ -21,6 +21,9 @@ pub enum ClientError {
     UnregisteredPacket(&'static str, ProtocolVersion),
     #[error(transparent)]
     PacketIo(#[from] io::Error),
+    /// Internal Server Error
+    #[error("internal server error: {0}")]
+    ISE(String),
 }
 
 impl ClientError {
