@@ -6,9 +6,11 @@ edition = "2021"
 version = "0.1.0"
 
 [workspace.dependencies]
+minecrevy_anvil = { path = "crates/minecrevy_anvil" }
 minecrevy_asset = { path = "crates/minecrevy_asset" }
 minecrevy_asset_macros = { path = "crates/minecrevy_asset_macros" }
 minecrevy_asset_vanilla = { path = "crates/minecrevy_asset_vanilla" }
+minecrevy_chunk = { path = "crates/minecrevy_chunk" }
 minecrevy_core = { path = "crates/minecrevy_core" }
 minecrevy_io = { path = "crates/minecrevy_io" }
 minecrevy_io_macros = { path = "crates/minecrevy_io_macros" }
