@@ -64,7 +64,7 @@ impl TextColor {
     /// The named color 'red'.
     pub const RED: TextColor = TextColor::new(255, 85, 85);
     /// The named color 'light_purple'.
-    #[doc(alias = "pink")]
+    #[doc(alias = "PINK")]
     pub const LIGHT_PURPLE: TextColor = TextColor::new(255, 85, 255);
     /// The named color 'yellow'.
     pub const YELLOW: TextColor = TextColor::new(255, 255, 85);
