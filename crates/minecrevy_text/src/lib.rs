@@ -13,6 +13,7 @@ mod style;
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Text {
+    #[cfg_attr(feature = "serde", serde(flatten))]
     pub content: TextContent,
     #[cfg_attr(feature = "serde", serde(flatten))]
     pub style: TextStyle,
@@ -146,14 +147,14 @@ impl fmt::Display for Text {
 #[cfg_attr(feature = "serde", serde(untagged))]
 pub enum TextContent {
     /// A simple string.
-    String(#[cfg_attr(feature = "serde", serde(rename = "text"))] Cow<'static, str>),
+    String { text: Cow<'static, str> },
     /// A translation key, with optional arguments.
-    Translation(
-        #[cfg_attr(feature = "serde", serde(rename = "translate"))] Cow<'static, str>,
-        #[cfg_attr(feature = "serde", serde(rename = "with"))] Vec<Text>,
-    ),
+    Translation {
+        translate: Cow<'static, str>,
+        with: Vec<Text>,
+    },
     /// A keybind key.
-    Keybind(#[cfg_attr(feature = "serde", serde(rename = "keybind"))] Cow<'static, str>),
+    Keybind { keybind: Cow<'static, str> },
     /// A scoreboard score.
     Score {
         name: Cow<'static, str>,
@@ -168,22 +169,29 @@ pub enum TextContent {
 
 impl TextContent {
     pub const fn str(s: &'static str) -> Self {
-        Self::String(Cow::Borrowed(s))
+        Self::String {
+            text: Cow::Borrowed(s),
+        }
     }
 
     pub fn string(s: impl Into<Cow<'static, str>>) -> Self {
-        Self::String(s.into())
+        Self::String { text: s.into() }
     }
 
     pub fn translation(
         translate: impl Into<Cow<'static, str>>,
         with: impl Into<Vec<Text>>,
     ) -> Self {
-        Self::Translation(translate.into(), with.into())
+        Self::Translation {
+            translate: translate.into(),
+            with: with.into(),
+        }
     }
 
     pub fn keybind(keybind: impl Into<Cow<'static, str>>) -> Self {
-        Self::Keybind(keybind.into())
+        Self::Keybind {
+            keybind: keybind.into(),
+        }
     }
 
     pub fn score(
@@ -200,7 +208,7 @@ impl TextContent {
 
     pub fn as_string(&self) -> Option<&str> {
         match self {
-            Self::String(str) => Some(&**str),
+            Self::String { text: str } => Some(&**str),
             _ => None,
         }
     }
