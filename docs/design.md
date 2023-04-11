@@ -1,4 +1,4 @@
-# Minecrevy Design Document
+# OUTDATED - Minecrevy Design Document
 
 This document outlines the architecture design of *Minecrevy*, a Minecraft server software project written in Rust, using the Bevy game engine.
 
