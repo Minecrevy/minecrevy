@@ -153,8 +153,6 @@ impl McWrite for Response {
     fn write<W: io::Write>(&self, writer: W, _: Self::Options) -> io::Result<()> {
         let str = serde_json::to_string(self)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-        debug!("response: {str}");
-
         String::write(
             &str,
             writer,
