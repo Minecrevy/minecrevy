@@ -92,11 +92,13 @@ impl HandshakeFlowPlugin {
         }
 
         for (entity, mut client) in &mut clients {
-            let _handshake = debug_span!("handshake", client = %client.addr()).entered();
+            let _net = debug_span!("net", client = %client.addr()).entered();
 
             let mut entity = commands.entity(entity);
 
             if let Some(handshake) = client.read::<HandshakePacket>() {
+                info!(version = %handshake.version, "client connected");
+
                 match handshake.next {
                     NextState::Status => change_state(&mut entity, client, &status, handshake),
                     NextState::Login => change_state(&mut entity, client, &login, handshake),
