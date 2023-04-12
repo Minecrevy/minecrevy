@@ -125,3 +125,24 @@ impl Default for OptionTag {
         Self::Bool
     }
 }
+
+/// The compression algorithm to be used for NBT blobs.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum Compression {
+    /// No compression.
+    #[default]
+    None,
+    /// GZIP compression.
+    GZip,
+    /// ZLIB compression.
+    ZLib,
+}
+
+/// Configurable options for NBT blobs.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct NbtOptions {
+    /// The compression algorithm
+    pub compression: Compression,
+    /// The maximum length of the blob.
+    pub max_len: Option<usize>,
+}

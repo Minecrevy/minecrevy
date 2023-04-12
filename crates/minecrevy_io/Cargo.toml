@@ -12,6 +12,7 @@ codec = ["bytes", "tokio-util"]
 [dependencies]
 minecrevy_core = { workspace = true }
 minecrevy_io_macros = { workspace = true }
+minecrevy_nbt = { workspace = true }
 minecrevy_text = { workspace = true }
 # required:
 byteorder = { workspace = true }

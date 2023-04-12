@@ -2,6 +2,7 @@ mod alloc;
 mod core;
 mod glam;
 mod key;
+mod nbt;
 mod std;
 mod text;
 mod tuples;
