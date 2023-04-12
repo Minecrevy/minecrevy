@@ -3,7 +3,8 @@ use std::fmt;
 use minecrevy_io::{McRead, McWrite};
 use strum::{EnumIter, FromRepr, IntoStaticStr};
 
-#[derive(McRead, McWrite, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(McRead, McWrite)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct ProtocolVersion(#[options(varint = true)] pub i32);
 
 impl ProtocolVersion {
@@ -31,9 +32,22 @@ impl From<SnapshotVersion> for ProtocolVersion {
     }
 }
 
-#[derive(
-    FromRepr, EnumIter, IntoStaticStr, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash,
-)]
+impl fmt::Display for ProtocolVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(release) = self.release() {
+            write!(f, "r{release}")
+        } else if let Some(snapshot) = self.snapshot() {
+            let snapshot = snapshot.0;
+            write!(f, "s{snapshot}")
+        } else {
+            let version = self.0;
+            write!(f, "p{version}")
+        }
+    }
+}
+
+#[derive(FromRepr, EnumIter, IntoStaticStr)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 #[repr(i32)]
 pub enum ReleaseVersion {
     V1_7_2 = 4,
