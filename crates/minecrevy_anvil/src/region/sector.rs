@@ -60,9 +60,10 @@ impl<F: Filelike> Sectors<F> {
     }
 }
 
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
 pub enum Compression {
     GZip = 1,
+    #[default]
     ZLib = 2,
     None = 3,
 }
@@ -92,12 +93,6 @@ impl Compression {
                 .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?,
         };
         Ok(())
-    }
-}
-
-impl Default for Compression {
-    fn default() -> Self {
-        Self::ZLib
     }
 }
 
