@@ -2,11 +2,11 @@ use std::collections::BTreeSet;
 
 use bevy::prelude::*;
 use minecrevy_core::ecs::CommandExt;
+use minecrevy_io::ProtocolVersion;
 
 use crate::protocol::{
     registry::VersionedPacketsBuilder,
     state::{Handshake, Login, Play, ProtocolState, Status},
-    version::ProtocolVersion,
 };
 
 /// A [`Plugin`] that provides a [`VersionedPackets`] [`Resource`].

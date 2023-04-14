@@ -7,9 +7,9 @@ use std::{
 };
 
 use bevy::prelude::*;
-use minecrevy_io::{McRead, McWrite, Packet};
+use minecrevy_io::{McRead, McWrite, Packet, ProtocolVersion};
 
-use crate::protocol::{state::ProtocolState, version::ProtocolVersion};
+use crate::protocol::state::ProtocolState;
 
 /// A read-only [`Resource`] map that stores a registry of incoming and outgoing
 /// `Packet Type -> Packet ID` entries, grouped by [`ProtocolVersion`].

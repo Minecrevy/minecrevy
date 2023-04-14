@@ -1,5 +1,5 @@
 use bevy::{ecs::system::EntityCommands, prelude::*};
-use minecrevy_io::{McRead, McWrite, Packet};
+use minecrevy_io::{McRead, McWrite, Packet, ProtocolVersion};
 
 use crate::{
     error::ClientError,
@@ -7,7 +7,7 @@ use crate::{
         client::{Client, ClientConnected, ClientItem, PacketQueue, PacketRegistry},
         registry::{Packets, VersionedPackets, VersionedPacketsBuilder},
         state::{Handshake, Login, ProtocolState, Status},
-        version::{ProtocolVersion, ReleaseVersion},
+        version::ReleaseVersion,
     },
 };
 

@@ -1,16 +1,20 @@
 use proc_macro2::{Literal, TokenStream};
 use quote::{quote, quote_spanned};
-use syn::spanned::Spanned;
-use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
+use syn::{
+    spanned::Spanned, Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant,
+};
 
-use crate::attr::{McIoAttrs, McIoTag};
-use crate::util::{crate_ident, generate_options, iter_fields};
+use crate::{
+    attr::{McIoAttrs, McIoTag},
+    util::{crate_path, generate_options, iter_fields},
+};
 
 pub fn generate_read_impl(input: DeriveInput) -> TokenStream {
     let ident = &input.ident;
     let (gen_impl, gen_ty, gen_where) = input.generics.split_for_impl();
 
-    let mcread = crate_ident("minecrevy_io", "McRead");
+    let mcread = crate_path("minecrevy_io", ["McRead"]);
+    let version = crate_path("minecrevy_io", ["ProtocolVersion"]);
     let ast = generate_ast(&input.attrs, &input.data);
 
     quote! {
@@ -18,7 +22,7 @@ pub fn generate_read_impl(input: DeriveInput) -> TokenStream {
         impl #gen_impl #mcread for #ident #gen_ty #gen_where {
             type Options = ();
 
-            fn read<R: ::std::io::Read>(mut reader: R, (): Self::Options) -> ::std::io::Result<Self> {
+            fn read<R: ::std::io::Read>(mut reader: R, (): Self::Options, version: #version) -> ::std::io::Result<Self> {
                 #ast
             }
         }
@@ -113,11 +117,11 @@ fn generate_field(field: &Field, ident: Member) -> TokenStream {
     };
 
     let ty = &field.ty;
-    let mcread = crate_ident("minecrevy_io", "McRead");
+    let mcread = crate_path("minecrevy_io", ["McRead"]);
 
     let options = generate_options(ty, attrs.options.as_ref(), quote! { #mcread });
 
     quote_spanned! { ty.span() =>
-        #ident: #mcread::read(&mut reader, #options)?,
+        #ident: #mcread::read(&mut reader, #options, version)?,
     }
 }

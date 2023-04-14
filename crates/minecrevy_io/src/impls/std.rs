@@ -7,13 +7,17 @@ use std::{
 use crate::{
     options::{ListLength, ListOptions},
     std_ext::{ReadMinecraftExt, WriteMinecraftExt},
-    McRead, McWrite,
+    McRead, McWrite, ProtocolVersion,
 };
 
 impl<K: McRead + Eq + Hash, V: McRead, S: BuildHasher + Default> McRead for HashMap<K, V, S> {
     type Options = ListOptions<(K::Options, V::Options)>;
 
-    fn read<R: Read>(mut reader: R, options: Self::Options) -> io::Result<Self> {
+    fn read<R: Read>(
+        mut reader: R,
+        options: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<Self> {
         let (k, v) = options.inner;
         match options.length {
             ListLength::VarInt => {
@@ -21,8 +25,8 @@ impl<K: McRead + Eq + Hash, V: McRead, S: BuildHasher + Default> McRead for Hash
                 let mut result = HashMap::with_capacity_and_hasher(len, S::default());
                 for _ in 0..len {
                     result.insert(
-                        K::read(&mut reader, k.clone())?,
-                        V::read(&mut reader, v.clone())?,
+                        K::read(&mut reader, k.clone(), version)?,
+                        V::read(&mut reader, v.clone(), version)?,
                     );
                 }
                 Ok(result)
@@ -38,8 +42,8 @@ impl<K: McRead + Eq + Hash, V: McRead, S: BuildHasher + Default> McRead for Hash
                 let mut result = HashMap::with_capacity_and_hasher(len, S::default());
                 for _ in 0..len {
                     result.insert(
-                        K::read(&mut reader, k.clone())?,
-                        V::read(&mut reader, v.clone())?,
+                        K::read(&mut reader, k.clone(), version)?,
+                        V::read(&mut reader, v.clone(), version)?,
                     );
                 }
                 Ok(result)
@@ -48,8 +52,8 @@ impl<K: McRead + Eq + Hash, V: McRead, S: BuildHasher + Default> McRead for Hash
                 let mut result = HashMap::with_hasher(S::default());
                 loop {
                     match (
-                        K::read(&mut reader, k.clone()),
-                        V::read(&mut reader, v.clone()),
+                        K::read(&mut reader, k.clone(), version),
+                        V::read(&mut reader, v.clone(), version),
                     ) {
                         (Ok(k), Ok(v)) => {
                             result.insert(k, v);
@@ -69,7 +73,12 @@ impl<K: McRead + Eq + Hash, V: McRead, S: BuildHasher + Default> McRead for Hash
 impl<K: McWrite, V: McWrite, S: BuildHasher> McWrite for HashMap<K, V, S> {
     type Options = ListOptions<(K::Options, V::Options)>;
 
-    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
+    fn write<W: Write>(
+        &self,
+        mut writer: W,
+        options: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<()> {
         let (k, v) = options.inner;
         match options.length {
             ListLength::VarInt => writer.write_var_i32_len(self.len())?,
@@ -85,8 +94,8 @@ impl<K: McWrite, V: McWrite, S: BuildHasher> McWrite for HashMap<K, V, S> {
             ListLength::Remaining => { /* no length prefix since its inferred */ }
         }
         for (key, value) in self {
-            key.write(&mut writer, k.clone())?;
-            value.write(&mut writer, v.clone())?;
+            key.write(&mut writer, k.clone(), version)?;
+            value.write(&mut writer, v.clone(), version)?;
         }
         Ok(())
     }

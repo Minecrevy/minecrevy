@@ -3,13 +3,17 @@ use std::io::{self, Read, Write};
 use crate::{
     options::{ListLength, ListOptions, StringOptions},
     std_ext::{ReadMinecraftExt, WriteMinecraftExt},
-    McRead, McWrite,
+    McRead, McWrite, ProtocolVersion,
 };
 
 impl McRead for String {
     type Options = StringOptions;
 
-    fn read<R: Read>(mut reader: R, options: Self::Options) -> io::Result<Self> {
+    fn read<R: Read>(
+        mut reader: R,
+        options: Self::Options,
+        _version: ProtocolVersion,
+    ) -> io::Result<Self> {
         // Read the len value and check upper bound
         let len = reader.read_var_i32_len()?;
         match options.max_len {
@@ -42,7 +46,12 @@ impl McRead for String {
 impl McWrite for String {
     type Options = StringOptions;
 
-    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
+    fn write<W: Write>(
+        &self,
+        mut writer: W,
+        options: Self::Options,
+        _version: ProtocolVersion,
+    ) -> io::Result<()> {
         match options.max_len {
             Some(max_len) if self.len() > max_len => {
                 return Err(io::Error::new(
@@ -66,13 +75,17 @@ impl McWrite for String {
 impl<T: McRead> McRead for Vec<T> {
     type Options = ListOptions<T::Options>;
 
-    fn read<R: Read>(mut reader: R, options: Self::Options) -> io::Result<Self> {
+    fn read<R: Read>(
+        mut reader: R,
+        options: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<Self> {
         match options.length {
             ListLength::VarInt => {
                 let len = reader.read_var_i32_len()?;
                 let mut result = Vec::with_capacity(len);
                 for _ in 0..len {
-                    result.push(T::read(&mut reader, options.inner.clone())?);
+                    result.push(T::read(&mut reader, options.inner.clone(), version)?);
                 }
                 Ok(result)
             }
@@ -86,14 +99,14 @@ impl<T: McRead> McRead for Vec<T> {
                 })?;
                 let mut result = Vec::with_capacity(len);
                 for _ in 0..len {
-                    result.push(T::read(&mut reader, options.inner.clone())?);
+                    result.push(T::read(&mut reader, options.inner.clone(), version)?);
                 }
                 Ok(result)
             }
             ListLength::Remaining => {
                 let mut result = Vec::new();
                 loop {
-                    match T::read(&mut reader, options.inner.clone()) {
+                    match T::read(&mut reader, options.inner.clone(), version) {
                         Ok(v) => result.push(v),
                         Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => break,
                         Err(e) => return Err(e),
@@ -108,7 +121,12 @@ impl<T: McRead> McRead for Vec<T> {
 impl<T: McWrite> McWrite for Vec<T> {
     type Options = ListOptions<T::Options>;
 
-    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
+    fn write<W: Write>(
+        &self,
+        mut writer: W,
+        options: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<()> {
         match options.length {
             ListLength::VarInt => writer.write_var_i32_len(self.len())?,
             ListLength::Byte => {
@@ -123,7 +141,7 @@ impl<T: McWrite> McWrite for Vec<T> {
             ListLength::Remaining => { /* no length prefix since its inferred */ }
         }
         for element in self {
-            element.write(&mut writer, options.inner.clone())?;
+            element.write(&mut writer, options.inner.clone(), version)?;
         }
         Ok(())
     }

@@ -1,9 +1,7 @@
 use std::{io, net::SocketAddr};
 
-use minecrevy_io::Packet;
+use minecrevy_io::{Packet, ProtocolVersion};
 use thiserror::Error;
-
-use crate::protocol::version::ProtocolVersion;
 
 #[derive(Error, Debug)]
 pub enum ServerError {

@@ -1,7 +1,7 @@
 use std::io;
 
 use bevy::prelude::*;
-use minecrevy_io::{options::StringOptions, McRead, McWrite, Packet};
+use minecrevy_io::{options::StringOptions, McRead, McWrite, Packet, ProtocolVersion};
 use minecrevy_text::Text;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -11,7 +11,7 @@ use crate::protocol::{
     flow::handshake::ClientInfo,
     registry::VersionedPacketsBuilder,
     state::{Play, Status},
-    version::{ProtocolVersion, ReleaseVersion},
+    version::ReleaseVersion,
 };
 
 /// A [`SystemSet`] for handling packets as part of the status flow.
@@ -106,7 +106,7 @@ pub struct ResponseVersion {
 
 impl From<ProtocolVersion> for ResponseVersion {
     fn from(version: ProtocolVersion) -> Self {
-        if let Some(release) = version.release() {
+        if let Ok(release) = ReleaseVersion::try_from(version) {
             Self {
                 name: release.to_string(),
                 protocol: version.0,
@@ -136,12 +136,17 @@ pub struct ResponsePlayerSample {
 impl McRead for Response {
     type Options = ();
 
-    fn read<R: io::Read>(reader: R, _: Self::Options) -> io::Result<Self> {
+    fn read<R: io::Read>(
+        reader: R,
+        _: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<Self> {
         let str = String::read(
             reader,
             StringOptions {
                 max_len: Some(32767),
             },
+            version,
         )?;
         serde_json::from_str(&str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
     }
@@ -150,7 +155,12 @@ impl McRead for Response {
 impl McWrite for Response {
     type Options = ();
 
-    fn write<W: io::Write>(&self, writer: W, _: Self::Options) -> io::Result<()> {
+    fn write<W: io::Write>(
+        &self,
+        writer: W,
+        _: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<()> {
         let str = serde_json::to_string(self)
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
         String::write(
@@ -159,6 +169,7 @@ impl McWrite for Response {
             StringOptions {
                 max_len: Some(32767),
             },
+            version,
         )
     }
 }

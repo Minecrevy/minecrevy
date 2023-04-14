@@ -4,13 +4,17 @@ use minecrevy_nbt::Blob;
 
 use crate::{
     options::{Compression, NbtOptions},
-    McRead, McWrite,
+    McRead, McWrite, ProtocolVersion,
 };
 
 impl McRead for Blob {
     type Options = NbtOptions;
 
-    fn read<R: io::Read>(reader: R, options: Self::Options) -> io::Result<Self> {
+    fn read<R: io::Read>(
+        reader: R,
+        options: Self::Options,
+        _version: ProtocolVersion,
+    ) -> io::Result<Self> {
         let mut reader: Box<dyn io::Read> = match options.max_len {
             Some(max_len) => Box::new(reader.take(max_len as u64)),
             None => Box::new(reader),
@@ -27,7 +31,12 @@ impl McRead for Blob {
 impl McWrite for Blob {
     type Options = NbtOptions;
 
-    fn write<W: io::Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
+    fn write<W: io::Write>(
+        &self,
+        mut writer: W,
+        options: Self::Options,
+        _version: ProtocolVersion,
+    ) -> io::Result<()> {
         let mut buf = vec![];
         match options.compression {
             Compression::None => self.to_writer(&mut buf)?,

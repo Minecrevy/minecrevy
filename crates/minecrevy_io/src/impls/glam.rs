@@ -2,7 +2,7 @@ use std::io::{self, Read, Write};
 
 use glam::{DVec2, DVec3, IVec2, IVec3, Vec2, Vec3};
 
-use crate::{McRead, McWrite};
+use crate::{McRead, McWrite, ProtocolVersion};
 
 macro_rules! impl_vec {
     ($($ty:ty as $arr:ty,)*) => {
@@ -10,16 +10,16 @@ macro_rules! impl_vec {
         impl McRead for $ty {
             type Options = ();
 
-            fn read<R: Read>(reader: R, (): Self::Options) -> std::io::Result<Self> {
-                let arr = <$arr>::read(reader, Default::default())?;
+            fn read<R: Read>(reader: R, (): Self::Options, version: ProtocolVersion) -> std::io::Result<Self> {
+                let arr = <$arr>::read(reader, Default::default(), version)?;
                 Ok(<$ty>::from(arr))
             }
         }
         impl McWrite for $ty {
             type Options = ();
 
-            fn write<W: Write>(&self, writer: W, (): Self::Options) -> std::io::Result<()> {
-                self.to_array().write(writer, Default::default())
+            fn write<W: Write>(&self, writer: W, (): Self::Options, version: ProtocolVersion) -> std::io::Result<()> {
+                self.to_array().write(writer, Default::default(), version)
             }
         }
         )*
@@ -48,12 +48,16 @@ pub struct IVec3Options {
 impl McRead for IVec3 {
     type Options = IVec3Options;
 
-    fn read<R: Read>(reader: R, options: Self::Options) -> io::Result<Self> {
+    fn read<R: Read>(
+        reader: R,
+        options: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<Self> {
         if options.compressed {
-            let val = u64::read(reader, ())?;
+            let val = u64::read(reader, (), version)?;
             Ok(uncompress_ivec3(val))
         } else {
-            let [x, y, z] = <[i32; 3]>::read(reader, Default::default())?;
+            let [x, y, z] = <[i32; 3]>::read(reader, Default::default(), version)?;
             Ok(IVec3::new(x, y, z))
         }
     }
@@ -62,12 +66,17 @@ impl McRead for IVec3 {
 impl McWrite for IVec3 {
     type Options = IVec3Options;
 
-    fn write<W: Write>(&self, mut writer: W, options: Self::Options) -> io::Result<()> {
+    fn write<W: Write>(
+        &self,
+        mut writer: W,
+        options: Self::Options,
+        version: ProtocolVersion,
+    ) -> io::Result<()> {
         if options.compressed {
             let val = compress_ivec3(*self);
-            val.write(&mut writer, ())?;
+            val.write(&mut writer, (), version)?;
         } else {
-            self.to_array().write(writer, Default::default())?;
+            self.to_array().write(writer, Default::default(), version)?;
         }
         Ok(())
     }

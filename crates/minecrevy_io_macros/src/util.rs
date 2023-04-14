@@ -56,20 +56,6 @@ pub fn iter_fields(fields: &Fields) -> Box<dyn Iterator<Item = (Member, &Field)>
     }
 }
 
-pub fn crate_ident(crate_: &str, ident: &str) -> TokenStream {
-    let found = crate_name(crate_).expect("failed to find crate name");
-
-    let ident = Ident::new(ident, Span::call_site());
-
-    match found {
-        FoundCrate::Itself => quote! { crate::#ident },
-        FoundCrate::Name(name) => {
-            let crate_ = Ident::new(&name, Span::mixed_site());
-            quote! { ::#crate_::#ident }
-        }
-    }
-}
-
 pub fn crate_path<const N: usize>(crate_: &str, path: [&str; N]) -> TokenStream {
     let found = crate_name(crate_).expect("failed to find crate name");
 

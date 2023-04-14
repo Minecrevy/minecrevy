@@ -7,7 +7,7 @@ use syn::{
     Attribute, Expr, Path, Token,
 };
 
-use crate::util::{crate_ident, crate_path};
+use crate::util::crate_path;
 
 pub struct McIoAttrs {
     pub repr: Option<McIoEnum>,
@@ -48,46 +48,46 @@ pub enum McIoEnum {
 
 impl McIoEnum {
     pub fn as_condition(&self) -> TokenStream {
-        let mcread = crate_ident("minecrevy_io", "McRead");
+        let mcread = crate_path("minecrevy_io", ["McRead"]);
 
         match self {
             McIoEnum::VarInt => {
                 let options = crate_path("minecrevy_io", ["options", "IntOptions"]);
                 quote! {
-                    <i32 as #mcread>::read(&mut reader, #options { varint: true })?
+                    <i32 as #mcread>::read(&mut reader, #options { varint: true }, version)?
                 }
             }
             McIoEnum::I8 => {
                 quote! {
-                    <i8 as #mcread>::read(&mut reader, ())?
+                    <i8 as #mcread>::read(&mut reader, (), version)?
                 }
             }
             McIoEnum::U8 => {
                 quote! {
-                    <u8 as #mcread>::read(&mut reader, ())?
+                    <u8 as #mcread>::read(&mut reader, (), version)?
                 }
             }
         }
     }
 
     pub fn as_prefix(&self, value: TokenStream) -> TokenStream {
-        let mcwrite = crate_ident("minecrevy_io", "McWrite");
+        let mcwrite = crate_path("minecrevy_io", ["McWrite"]);
 
         match self {
             McIoEnum::VarInt => {
                 let options = crate_path("minecrevy_io", ["options", "IntOptions"]);
                 quote! {
-                    <i32 as #mcwrite>::write(&#value, &mut writer, #options { varint: true })?;
+                    <i32 as #mcwrite>::write(&#value, &mut writer, #options { varint: true }, version)?;
                 }
             }
             McIoEnum::I8 => {
                 quote! {
-                    <i8 as #mcwrite>::write(&#value, &mut writer, ())?;
+                    <i8 as #mcwrite>::write(&#value, &mut writer, (), version)?;
                 }
             }
             McIoEnum::U8 => {
                 quote! {
-                    <u8 as #mcwrite>::write(&#value, &mut writer, ())?;
+                    <u8 as #mcwrite>::write(&#value, &mut writer, (), version)?;
                 }
             }
         }

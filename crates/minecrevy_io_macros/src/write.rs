@@ -1,16 +1,20 @@
 use proc_macro2::{Literal, TokenStream};
 use quote::{format_ident, quote, quote_spanned};
-use syn::spanned::Spanned;
-use syn::{Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant};
+use syn::{
+    spanned::Spanned, Attribute, Data, DataEnum, DataStruct, DeriveInput, Field, Member, Variant,
+};
 
-use crate::attr::{McIoAttrs, McIoEnum, McIoTag};
-use crate::util::{crate_ident, generate_options, iter_fields};
+use crate::{
+    attr::{McIoAttrs, McIoEnum, McIoTag},
+    util::{crate_path, generate_options, iter_fields},
+};
 
 pub fn generate_write_impl(input: DeriveInput) -> TokenStream {
     let ident = &input.ident;
     let (gen_impl, gen_ty, gen_where) = input.generics.split_for_impl();
 
-    let mcwrite = crate_ident("minecrevy_io", "McWrite");
+    let mcwrite = crate_path("minecrevy_io", ["McWrite"]);
+    let version = crate_path("minecrevy_io", ["ProtocolVersion"]);
     let ast = generate_ast(&input.attrs, &input.data);
 
     quote! {
@@ -18,7 +22,7 @@ pub fn generate_write_impl(input: DeriveInput) -> TokenStream {
         impl #gen_impl #mcwrite for #ident #gen_ty #gen_where {
             type Options = ();
 
-            fn write<W: ::std::io::Write>(&self, mut writer: W, (): Self::Options) -> ::std::io::Result<()> {
+            fn write<W: ::std::io::Write>(&self, mut writer: W, (): Self::Options, version: #version) -> ::std::io::Result<()> {
                 #ast
                 Ok(())
             }
@@ -127,11 +131,11 @@ fn generate_field(field: &Field, ident: Member, this: Option<TokenStream>) -> To
     };
 
     let ty = &field.ty;
-    let mcwrite = crate_ident("minecrevy_io", "McWrite");
+    let mcwrite = crate_path("minecrevy_io", ["McWrite"]);
 
     let options = generate_options(ty, attrs.options.as_ref(), quote! { #mcwrite });
 
     quote_spanned! { ty.span() =>
-        <#ty as #mcwrite>::write(&#this #ident, &mut writer, #options)?;
+        <#ty as #mcwrite>::write(&#this #ident, &mut writer, #options, version)?;
     }
 }

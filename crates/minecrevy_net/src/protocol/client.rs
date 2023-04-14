@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use bevy::{ecs::query::WorldQuery, prelude::*};
-use minecrevy_io::{packet::RawPacket, McRead, McWrite, Packet};
+use minecrevy_io::{packet::RawPacket, McRead, McWrite, Packet, ProtocolVersion};
 
 use crate::{
     error::ClientError,
@@ -43,19 +43,24 @@ impl<S: ProtocolState> ClientItem<'_, S> {
         self.raw.addr()
     }
 
+    pub fn version(&self) -> ProtocolVersion {
+        if let Some(info) = &self.info {
+            info.version
+        } else {
+            ReleaseVersion::min().v()
+        }
+    }
+
     pub fn read<T: Packet + McRead>(&mut self) -> Option<T> {
+        let version = self.version();
         let Some(id) = self.registry.incoming::<T>() else {
-            let version = self
-                .info
-                .map(|i| i.version)
-                .unwrap_or(ReleaseVersion::V1_7_2.v());
             self.raw.error(ClientError::unregistered::<T>(version));
             return None;
         };
 
         // check the queue for a matching packet
         if let Some(packet) = self.queue.pop(id) {
-            match T::read_default(packet.reader()) {
+            match T::read_default(packet.reader(), version) {
                 Ok(decoded) => return Some(decoded),
                 Err(error) => {
                     self.raw.error(ClientError::PacketIo(error));
@@ -76,7 +81,7 @@ impl<S: ProtocolState> ClientItem<'_, S> {
                 continue;
             }
 
-            match T::read_default(packet.reader()) {
+            match T::read_default(packet.reader(), version) {
                 Ok(decoded) => return Some(decoded),
                 Err(error) => {
                     self.raw.error(ClientError::PacketIo(error));
@@ -92,11 +97,8 @@ impl<S: ProtocolState> ClientItem<'_, S> {
     }
 
     pub fn write<T: Packet + McWrite>(&mut self, packet: T) {
+        let version = self.version();
         let Some(id) = self.registry.outgoing::<T>() else {
-            let version = self
-                .info
-                .map(|i| i.version)
-                .unwrap_or(ReleaseVersion::V1_7_2.v());
             self.raw.error(ClientError::unregistered::<T>(version));
             return;
         };
@@ -105,7 +107,7 @@ impl<S: ProtocolState> ClientItem<'_, S> {
             id,
             body: Vec::new(),
         };
-        if let Err(error) = packet.write_default(raw.writer()) {
+        if let Err(error) = packet.write_default(raw.writer(), version) {
             self.raw.error(ClientError::PacketIo(error));
             return;
         }

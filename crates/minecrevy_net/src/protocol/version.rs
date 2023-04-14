@@ -1,50 +1,8 @@
 use std::fmt;
 
-use minecrevy_io::{McRead, McWrite};
-use strum::{EnumIter, FromRepr, IntoStaticStr};
-
-#[derive(McRead, McWrite)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
-pub struct ProtocolVersion(#[options(varint = true)] pub i32);
-
-impl ProtocolVersion {
-    pub fn snapshot(&self) -> Option<SnapshotVersion> {
-        SnapshotVersion::new(*self)
-    }
-
-    pub fn release(&self) -> Option<ReleaseVersion> {
-        if self.snapshot().is_some() {
-            return None;
-        }
-        ReleaseVersion::from_repr(self.0)
-    }
-}
-
-impl From<ReleaseVersion> for ProtocolVersion {
-    fn from(value: ReleaseVersion) -> Self {
-        Self(value as i32)
-    }
-}
-
-impl From<SnapshotVersion> for ProtocolVersion {
-    fn from(value: SnapshotVersion) -> Self {
-        Self(value.0 | SnapshotVersion::BIT)
-    }
-}
-
-impl fmt::Display for ProtocolVersion {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(release) = self.release() {
-            write!(f, "r{release}")
-        } else if let Some(snapshot) = self.snapshot() {
-            let snapshot = snapshot.0;
-            write!(f, "s{snapshot}")
-        } else {
-            let version = self.0;
-            write!(f, "p{version}")
-        }
-    }
-}
+use minecrevy_io::ProtocolVersion;
+use strum::{EnumIter, FromRepr, IntoEnumIterator, IntoStaticStr};
+use thiserror::Error;
 
 #[derive(FromRepr, EnumIter, IntoStaticStr)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
@@ -90,8 +48,38 @@ pub enum ReleaseVersion {
 }
 
 impl ReleaseVersion {
+    pub fn min() -> ReleaseVersion {
+        Self::iter()
+            .next()
+            .unwrap_or_else(|| unreachable!("no release versions"))
+    }
+
+    pub fn max() -> ReleaseVersion {
+        Self::iter()
+            .last()
+            .unwrap_or_else(|| unreachable!("no release versions"))
+    }
+
     pub fn v(self) -> ProtocolVersion {
         ProtocolVersion::from(self)
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("protocol version does not match a valid release version {0}")]
+pub struct TryIntoReleaseError(pub ProtocolVersion);
+
+impl TryFrom<ProtocolVersion> for ReleaseVersion {
+    type Error = TryIntoReleaseError;
+
+    fn try_from(version: ProtocolVersion) -> Result<Self, Self::Error> {
+        ReleaseVersion::from_repr(version.0).ok_or_else(|| TryIntoReleaseError(version))
+    }
+}
+
+impl From<ReleaseVersion> for ProtocolVersion {
+    fn from(version: ReleaseVersion) -> Self {
+        ProtocolVersion(version as i32)
     }
 }
 
@@ -109,15 +97,29 @@ pub struct SnapshotVersion(pub i32);
 impl SnapshotVersion {
     const BIT: i32 = 1 << 30;
 
-    pub fn new(version: ProtocolVersion) -> Option<Self> {
-        if version.0 & Self::BIT != 0 {
-            Some(Self(version.0 & !Self::BIT))
-        } else {
-            None
-        }
-    }
-
     pub fn v(self) -> ProtocolVersion {
         ProtocolVersion::from(self)
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("protocol version does not match a valid snapshot version: {0}")]
+pub struct TryIntoSnapshotError(pub ProtocolVersion);
+
+impl TryFrom<ProtocolVersion> for SnapshotVersion {
+    type Error = TryIntoSnapshotError;
+
+    fn try_from(version: ProtocolVersion) -> Result<Self, Self::Error> {
+        if version.0 & SnapshotVersion::BIT != 0 {
+            Ok(Self(version.0 & !SnapshotVersion::BIT))
+        } else {
+            Err(TryIntoSnapshotError(version))
+        }
+    }
+}
+
+impl From<SnapshotVersion> for ProtocolVersion {
+    fn from(version: SnapshotVersion) -> Self {
+        ProtocolVersion(version.0 | SnapshotVersion::BIT)
     }
 }
