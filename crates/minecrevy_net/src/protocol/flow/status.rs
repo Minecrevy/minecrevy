@@ -11,7 +11,6 @@ use crate::protocol::{
     flow::handshake::ClientInfo,
     registry::VersionedPacketsBuilder,
     state::{Play, Status},
-    version::ReleaseVersion,
 };
 
 /// A [`SystemSet`] for handling packets as part of the status flow.
@@ -31,11 +30,11 @@ impl Plugin for StatusFlowPlugin {
 /// ECS Systems
 impl StatusFlowPlugin {
     fn register_packets(mut status: ResMut<VersionedPacketsBuilder<Status>>) {
-        status.add_incoming::<StatusRequest>(0x00, ReleaseVersion::V1_7_2.v()..);
-        status.add_incoming::<PingRequest>(0x01, ReleaseVersion::V1_7_2.v()..);
+        status.add_incoming::<StatusRequest>(0x00, ProtocolVersion::V1_7_2..);
+        status.add_incoming::<PingRequest>(0x01, ProtocolVersion::V1_7_2..);
 
-        status.add_outgoing::<StatusResponse>(0x00, ReleaseVersion::V1_7_2.v()..);
-        status.add_outgoing::<PingResponse>(0x01, ReleaseVersion::V1_7_2.v()..);
+        status.add_outgoing::<StatusResponse>(0x00, ProtocolVersion::V1_7_2..);
+        status.add_outgoing::<PingResponse>(0x01, ProtocolVersion::V1_7_2..);
     }
 
     fn status(
@@ -106,16 +105,9 @@ pub struct ResponseVersion {
 
 impl From<ProtocolVersion> for ResponseVersion {
     fn from(version: ProtocolVersion) -> Self {
-        if let Ok(release) = ReleaseVersion::try_from(version) {
-            Self {
-                name: release.to_string(),
-                protocol: version.0,
-            }
-        } else {
-            Self {
-                name: format!("Unknown"),
-                protocol: version.0,
-            }
+        Self {
+            name: version.to_string(),
+            protocol: version.get(),
         }
     }
 }

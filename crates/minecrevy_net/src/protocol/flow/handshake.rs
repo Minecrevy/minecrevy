@@ -7,7 +7,6 @@ use crate::{
         client::{Client, ClientConnected, ClientItem, PacketQueue, PacketRegistry},
         registry::{Packets, VersionedPackets, VersionedPacketsBuilder},
         state::{Handshake, Login, ProtocolState, Status},
-        version::ReleaseVersion,
     },
 };
 
@@ -35,7 +34,7 @@ impl Plugin for HandshakeFlowPlugin {
 impl HandshakeFlowPlugin {
     /// Registers the packets needed during handshake flow.
     fn register_packets(mut handshake: ResMut<VersionedPacketsBuilder<Handshake>>) {
-        handshake.add_incoming::<HandshakePacket>(0x00, ReleaseVersion::V1_7_2.v()..);
+        handshake.add_incoming::<HandshakePacket>(0x00, ProtocolVersion::V1_7_2..);
     }
 
     /// Inserts components to enable [`Client<Handshake>`] querying.
@@ -70,9 +69,9 @@ impl HandshakeFlowPlugin {
             entity: &mut EntityCommands,
             client: ClientItem<Handshake>,
             state: &VersionedPackets<S>,
-            handshake: HandshakePacket,
+            info: ClientInfo,
         ) {
-            let Some(registry) = state.get(handshake.version) else {
+            let Some(registry) = state.get(info.version) else {
                 let msg = format!(
                     "{} registry does not exist, cannot enter {} flow without one.",
                     std::any::type_name::<Packets<S>>(),
@@ -86,7 +85,7 @@ impl HandshakeFlowPlugin {
                 .insert((
                     PacketQueue::<S>::default(),
                     PacketRegistry(registry.clone()),
-                    ClientInfo::from(handshake),
+                    info,
                 ))
                 .remove::<(PacketQueue<Handshake>, PacketRegistry<Handshake>)>();
         }
@@ -97,11 +96,14 @@ impl HandshakeFlowPlugin {
             let mut entity = commands.entity(entity);
 
             if let Some(handshake) = client.read::<HandshakePacket>() {
-                info!(version = %handshake.version, "client connected");
+                let next = handshake.next;
+                let info = ClientInfo::from(handshake);
 
-                match handshake.next {
-                    NextState::Status => change_state(&mut entity, client, &status, handshake),
-                    NextState::Login => change_state(&mut entity, client, &login, handshake),
+                info!(version = %info.version, "client connected");
+
+                match next {
+                    NextState::Status => change_state(&mut entity, client, &status, info),
+                    NextState::Login => change_state(&mut entity, client, &login, info),
                 }
             }
         }
@@ -122,7 +124,7 @@ pub struct ClientInfo {
 impl From<HandshakePacket> for ClientInfo {
     fn from(handshake: HandshakePacket) -> Self {
         Self {
-            version: handshake.version,
+            version: handshake.version.unwrap_or(ProtocolVersion::min()),
             server_address: handshake.address,
             server_port: handshake.port,
         }
@@ -133,7 +135,7 @@ impl From<HandshakePacket> for ClientInfo {
 #[derive(Packet, McRead, McWrite, Clone, PartialEq, Debug)]
 pub struct HandshakePacket {
     /// The protocol version.
-    pub version: ProtocolVersion,
+    pub version: Option<ProtocolVersion>,
     /// The server address.
     #[options(max_len = 255)]
     pub address: String,

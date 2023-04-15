@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::ops::{Bound, RangeBounds};
 
 use bevy::prelude::*;
 use minecrevy_core::ecs::CommandExt;
@@ -15,13 +15,16 @@ use crate::protocol::{
 /// as the former one is read-only.
 pub struct PacketsPlugin {
     /// The [`ProtocolVersion`]s of Minecraft to support.
-    supported_versions: BTreeSet<ProtocolVersion>,
+    supported_versions: (Bound<ProtocolVersion>, Bound<ProtocolVersion>),
 }
 
 impl PacketsPlugin {
-    pub fn new(supported_versions: impl IntoIterator<Item = ProtocolVersion>) -> Self {
+    pub fn new(supported_versions: impl RangeBounds<ProtocolVersion>) -> Self {
         Self {
-            supported_versions: BTreeSet::from_iter(supported_versions),
+            supported_versions: (
+                supported_versions.start_bound().cloned(),
+                supported_versions.end_bound().cloned(),
+            ),
         }
     }
 }
@@ -29,16 +32,16 @@ impl PacketsPlugin {
 impl Plugin for PacketsPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(VersionedPacketsBuilder::<Handshake>::new(
-            self.supported_versions.iter().copied(),
+            self.supported_versions,
         ))
         .insert_resource(VersionedPacketsBuilder::<Status>::new(
-            self.supported_versions.iter().copied(),
+            self.supported_versions,
         ))
         .insert_resource(VersionedPacketsBuilder::<Login>::new(
-            self.supported_versions.iter().copied(),
+            self.supported_versions,
         ))
         .insert_resource(VersionedPacketsBuilder::<Play>::new(
-            self.supported_versions.iter().copied(),
+            self.supported_versions,
         ));
 
         app.add_systems(

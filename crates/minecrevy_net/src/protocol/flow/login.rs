@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::HashSet};
 use minecrevy_core::key::Key;
 use minecrevy_io::{
     options::{ListLength, OptionTag},
-    McRead, McWrite, Packet,
+    McRead, McWrite, Packet, ProtocolVersion,
 };
 use minecrevy_text::Text;
 use uuid::Uuid;
@@ -14,7 +14,6 @@ use crate::{
         flow::handshake::ClientInfo,
         registry::{Packets, VersionedPackets, VersionedPacketsBuilder},
         state::{Login, Play},
-        version::ReleaseVersion,
     },
 };
 
@@ -37,9 +36,9 @@ impl Plugin for LoginFlowPlugin {
 /// ECS Systems
 impl LoginFlowPlugin {
     fn register_packets(mut login: ResMut<VersionedPacketsBuilder<Login>>) {
-        login.add_incoming::<Start>(0x00, ReleaseVersion::V1_19_3.v()..);
+        login.add_incoming::<Start>(0x00, ProtocolVersion::V1_19_3..);
 
-        login.add_outgoing::<Success>(0x02, ReleaseVersion::V1_19.v()..);
+        login.add_outgoing::<Success>(0x02, ProtocolVersion::V1_19..);
     }
 
     pub fn begin_login(

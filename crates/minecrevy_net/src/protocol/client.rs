@@ -9,7 +9,6 @@ use crate::{
         flow::handshake::ClientInfo,
         registry::Packets,
         state::{ProtocolQueue, ProtocolState},
-        version::ReleaseVersion,
     },
     raw::RawClient,
 };
@@ -47,7 +46,7 @@ impl<S: ProtocolState> ClientItem<'_, S> {
         if let Some(info) = &self.info {
             info.version
         } else {
-            ReleaseVersion::min().v()
+            ProtocolVersion::min()
         }
     }
 

@@ -7,7 +7,7 @@ use std::{
 };
 
 use bevy::prelude::*;
-use minecrevy_io::{McRead, McWrite, Packet, ProtocolVersion};
+use minecrevy_io::{McRead, McWrite, Packet, ProtocolVersion, VersionRangeIter};
 
 use crate::protocol::state::ProtocolState;
 
@@ -54,13 +54,8 @@ pub struct VersionedPacketsBuilder<S: ProtocolState>(BTreeMap<ProtocolVersion, P
 
 impl<S: ProtocolState> VersionedPacketsBuilder<S> {
     /// Constructs a packet registry builder that supports the specified [`ProtocolVersion`]s.
-    pub fn new(versions: impl IntoIterator<Item = ProtocolVersion>) -> Self {
-        Self(
-            versions
-                .into_iter()
-                .map(|v| (v, Packets::default()))
-                .collect(),
-        )
+    pub fn new(versions: impl RangeBounds<ProtocolVersion>) -> Self {
+        Self(versions.iter().map(|v| (v, Packets::default())).collect())
     }
 
     /// Registers the specified [`Packet`] type to the specified packet ID, for the specified [`ProtocolVersion`]s.
