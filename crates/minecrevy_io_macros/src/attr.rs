@@ -22,7 +22,7 @@ impl McIoAttrs {
         let mut options = None;
 
         for attr in attrs {
-            let path = attr.path.get_ident().map(|i| i.to_string());
+            let path = attr.path().get_ident().map(|i| i.to_string());
             match path.as_ref().map(|s| s.as_str()) {
                 Some("io_repr") => repr = Some(attr.parse_args::<McIoEnum>()?),
                 Some("tag") => tag = Some(attr.parse_args::<McIoTag>()?),
@@ -127,6 +127,7 @@ impl Parse for McIoTag {
     }
 }
 
+/// A comma-delimited list of [`McIoOption`]s.
 pub struct McIoOptions(pub Vec<McIoOption>);
 
 impl Parse for McIoOptions {

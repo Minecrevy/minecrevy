@@ -29,7 +29,7 @@ pub fn Packet(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let mut meta = None;
 
     for attr in input.attrs {
-        let path = attr.path.get_ident().map(|i| i.to_string());
+        let path = attr.path().get_ident().map(|i| i.to_string());
         match path.as_ref().map(|s| s.as_str()) {
             Some("meta") => meta = Some(attr.parse_args::<Ident>().unwrap()),
             _ => { /* Unhandled attribute */ }
