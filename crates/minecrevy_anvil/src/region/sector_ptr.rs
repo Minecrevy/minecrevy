@@ -1,5 +1,5 @@
 use std::{
-    io::{self, SeekFrom},
+    io::{self, BufReader, Read, SeekFrom, Take},
     mem::size_of,
     num::NonZeroU32,
 };
@@ -21,7 +21,7 @@ impl<F: Filelike> SectorPtrTable<F> {
     pub const SIZE: usize = Self::LENGTH * SectorPtr::SIZE;
 
     /// The `file position` that the table starts at.
-    const START_POSITION: usize = 0;
+    pub const START_POSITION: usize = 0;
 
     /// Constructs a new table backed by the specified file.
     pub fn new(file: F) -> Self {
@@ -52,6 +52,16 @@ impl<F: Filelike> SectorPtrTable<F> {
             (Self::START_POSITION as u64) + pos.as_table_index() * (SectorPtr::SIZE as u64);
         self.file.seek(SeekFrom::Start(position))
     }
+
+    /// Returns an iterator of all [`SectorPtr`]s in the table.
+    pub fn iter(&mut self) -> io::Result<SectorPtrTableIter<&mut F>> {
+        SectorPtrTableIter::new(&mut self.file)
+    }
+
+    /// Counts the number of non-zero [`SectorPtr`]s in the table.
+    pub fn count(&mut self) -> io::Result<u64> {
+        Ok(self.iter()?.flatten().filter(|ptr| ptr.len() > 0).count() as u64)
+    }
 }
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -79,5 +89,37 @@ impl SectorPtr {
     #[inline]
     pub fn len(&self) -> u8 {
         (self.0.get() & 0xFF) as u8
+    }
+}
+
+pub struct SectorPtrTableIter<F> {
+    file: BufReader<Take<F>>,
+    finished: bool,
+}
+
+impl<F: Filelike> SectorPtrTableIter<F> {
+    pub fn new(mut file: F) -> io::Result<Self> {
+        file.seek(SeekFrom::Start(SectorPtrTable::<F>::START_POSITION as u64))?;
+        Ok(Self {
+            file: BufReader::new(file.take(SectorPtrTable::<F>::SIZE as u64)),
+            finished: false,
+        })
+    }
+}
+
+impl<F: Filelike> Iterator for SectorPtrTableIter<F> {
+    type Item = Option<SectorPtr>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
+
+        // read the sector ptr's value
+        let Ok(raw) = self.file.read_u32::<BigEndian>() else {
+            self.finished = true;
+            return None;
+        };
+        Some(SectorPtr::new(raw))
     }
 }

@@ -72,6 +72,11 @@ impl AnvilFolder {
         self.open.remove(&pos).is_some()
     }
 
+    /// Returns the number of chunks currently stored in the region at the specified [`RegionPos`].
+    pub fn count_chunks(&mut self, pos: RegionPos) -> io::Result<u64> {
+        self.region(pos)?.count()
+    }
+
     fn region(&mut self, pos: RegionPos) -> io::Result<&mut AnvilRegion<File>> {
         match self.open.entry(pos) {
             Entry::Occupied(entry) => Ok(entry.into_mut()),

@@ -56,6 +56,11 @@ impl<F: Filelike> AnvilRegion<F> {
         todo!()
     }
 
+    /// Returns the number of chunks currently stored in the region.
+    pub fn count(&mut self) -> io::Result<u64> {
+        self.sector_ptr_table().count()
+    }
+
     fn sector_ptr_table(&mut self) -> SectorPtrTable<&mut F> {
         SectorPtrTable::new(&mut self.file)
     }
