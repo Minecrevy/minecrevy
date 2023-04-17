@@ -6,10 +6,10 @@ use bevy::{
     prelude::*,
     MinimalPlugins,
 };
+use minecrevy_io::ProtocolVersion;
 use minecrevy_net::protocol::{
-    packet::PacketsPlugin,
     plugin::{listen, DefaultNetworkPlugins},
-    version::ReleaseVersion,
+    registry::PacketRegistryPlugin,
 };
 
 /// How often the server loop should run.
@@ -25,7 +25,7 @@ fn main() {
             filter: "".into(),
             level: Level::DEBUG,
         })
-        .add_plugin(PacketsPlugin::new([ReleaseVersion::V1_19_4.v()]))
+        .add_plugin(PacketRegistryPlugin::new(ProtocolVersion::V1_19_4..))
         .add_plugins(DefaultNetworkPlugins)
         .add_systems(PostStartup, listen("127.0.0.1:25565".parse().unwrap()))
         .run();

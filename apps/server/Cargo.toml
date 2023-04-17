@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+minecrevy_io = { workspace = true }
 minecrevy_net = { workspace = true }
 bevy = { workspace = true, default-features = false }
