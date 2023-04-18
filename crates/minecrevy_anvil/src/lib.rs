@@ -11,10 +11,7 @@ use minecrevy_chunk::ChunkPos;
 use minecrevy_nbt::Blob;
 
 pub use self::{pos::*, region::*};
-use crate::{
-    pos::{RegionLocalChunkPos, RegionPos},
-    region::AnvilRegion,
-};
+use crate::{pos::RegionLocalChunkPos, region::AnvilRegion};
 
 mod pos;
 mod region;
