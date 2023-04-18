@@ -10,13 +10,14 @@ use bevy::utils::{Entry, HashMap};
 use minecrevy_chunk::ChunkPos;
 use minecrevy_nbt::Blob;
 
+pub use self::{pos::*, region::*};
 use crate::{
     pos::{RegionLocalChunkPos, RegionPos},
     region::AnvilRegion,
 };
 
-pub mod pos;
-pub mod region;
+mod pos;
+mod region;
 
 /// A folder of Minecraft region files.
 pub struct AnvilFolder {
