@@ -30,17 +30,6 @@ impl<F> SectorPtrTable<F> {
     }
 }
 
-impl<F: Seek> SectorPtrTable<F> {
-    fn seek(&mut self, pos: RegionLocalChunkPos) -> io::Result<u64> {
-        let position = Self::file_position(pos);
-        self.file.seek(SeekFrom::Start(position))
-    }
-
-    fn file_position(pos: RegionLocalChunkPos) -> u64 {
-        (Self::START_POSITION as u64) + pos.to_table_index() * (SectorPtr::SIZE as u64)
-    }
-}
-
 impl<F: Seek + Read> SectorPtrTable<F> {
     /// Reads the [`SectorPtr`] at the specified [`RegionLocalChunkPos`].
     pub fn read(&mut self, pos: RegionLocalChunkPos) -> io::Result<Option<SectorPtr>> {
@@ -75,6 +64,17 @@ impl<F: Seek + Write> SectorPtrTable<F> {
         let raw = SectorPtr::get(ptr);
         self.file.write_u32::<BigEndian>(raw)?;
         Ok(())
+    }
+}
+
+impl<F: Seek> SectorPtrTable<F> {
+    fn seek(&mut self, pos: RegionLocalChunkPos) -> io::Result<u64> {
+        let position = Self::file_position(pos);
+        self.file.seek(SeekFrom::Start(position))
+    }
+
+    fn file_position(pos: RegionLocalChunkPos) -> u64 {
+        (Self::START_POSITION as u64) + pos.to_table_index() * (SectorPtr::SIZE as u64)
     }
 }
 
