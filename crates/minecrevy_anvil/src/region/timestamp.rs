@@ -1,5 +1,5 @@
 use std::{
-    io::{self, SeekFrom},
+    io::{self, Read, Seek, SeekFrom, Write},
     mem::size_of,
     num::NonZeroU32,
     time::{Duration, SystemTime},
@@ -7,17 +7,14 @@ use std::{
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::{
-    pos::RegionLocalChunkPos,
-    region::{sector_ptr::SectorPtrTable, Filelike},
-};
+use crate::{pos::RegionLocalChunkPos, region::sector_ptr::SectorPtrTable};
 
 /// A table of 1024 [`Timestamp`]s.
-pub struct TimestampTable<F: Filelike> {
+pub struct TimestampTable<F> {
     file: F,
 }
 
-impl<F: Filelike> TimestampTable<F> {
+impl<F> TimestampTable<F> {
     /// The number of [`Timestamp`]s in the table.
     pub const LENGTH: usize = 1024;
 
@@ -31,7 +28,9 @@ impl<F: Filelike> TimestampTable<F> {
     pub fn new(file: F) -> Self {
         Self { file }
     }
+}
 
+impl<F: Seek + Read> TimestampTable<F> {
     /// Reads the [`Timestamp`] at the specified [`RegionLocalChunkPos`].
     pub fn read(&mut self, pos: RegionLocalChunkPos) -> io::Result<Option<Timestamp>> {
         // Seek to the timestamp's position in the table.
@@ -40,7 +39,9 @@ impl<F: Filelike> TimestampTable<F> {
         let raw = self.file.read_u32::<BigEndian>()?;
         Ok(Timestamp::new(raw))
     }
+}
 
+impl<F: Seek + Write> TimestampTable<F> {
     /// Writes the [`Timestamp`] at the specified [`RegionLocalChunkPos`].
     pub fn write(
         &mut self,
@@ -53,11 +54,16 @@ impl<F: Filelike> TimestampTable<F> {
         let raw = Timestamp::get(timestamp);
         self.file.write_u32::<BigEndian>(raw)
     }
+}
 
+impl<F: Seek> TimestampTable<F> {
     fn seek(&mut self, pos: RegionLocalChunkPos) -> io::Result<u64> {
-        let position =
-            (Self::START_POSITION as u64) + pos.as_table_index() * (Timestamp::SIZE as u64);
+        let position = Self::file_position(pos);
         self.file.seek(SeekFrom::Start(position))
+    }
+
+    fn file_position(pos: RegionLocalChunkPos) -> u64 {
+        (Self::START_POSITION as u64) + pos.to_table_index() * (Timestamp::SIZE as u64)
     }
 }
 

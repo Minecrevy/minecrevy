@@ -10,3 +10,5 @@ minecrevy_chunk = { workspace = true }
 minecrevy_nbt = { workspace = true }
 bevy = { workspace = true }
 byteorder = { workspace = true }
+once_cell = { workspace = true }
+regex = { workspace = true }

@@ -1,4 +1,4 @@
-use std::io::{self, Cursor, ErrorKind, Read, SeekFrom, Write};
+use std::io::{self, Cursor, ErrorKind, Read, Seek, SeekFrom, Write};
 
 use byteorder::{BigEndian, ReadBytesExt};
 use minecrevy_nbt::Blob;
@@ -6,15 +6,14 @@ use minecrevy_nbt::Blob;
 use crate::region::{
     sector_ptr::{SectorPtr, SectorPtrTable},
     timestamp::TimestampTable,
-    Filelike,
 };
 
 /// A potentially-infinite collection of chunk [`Blob`]s.
-pub struct Sectors<F: Filelike> {
+pub struct Sectors<F> {
     file: F,
 }
 
-impl<F: Filelike> Sectors<F> {
+impl<F> Sectors<F> {
     /// The `file position` that sectors starts at.
     const START_POSITION: usize = SectorPtrTable::<F>::SIZE + TimestampTable::<F>::SIZE;
 
@@ -25,7 +24,9 @@ impl<F: Filelike> Sectors<F> {
     pub fn new(file: F) -> Self {
         Self { file }
     }
+}
 
+impl<F: Seek + Read> Sectors<F> {
     /// Reads the [`Blob`] at the specified [`SectorPtr`].
     pub fn read(&mut self, ptr: SectorPtr) -> io::Result<Blob> {
         // go to the first sector's file position
@@ -48,12 +49,16 @@ impl<F: Filelike> Sectors<F> {
         self.file.read_exact(&mut data)?;
         compression.read_blob(Cursor::new(data))
     }
+}
 
+impl<F: Seek + Write> Sectors<F> {
     /// Writes the [`Blob`] at the specified [`SectorPtr`].
-    pub fn write(&mut self, ptr: SectorPtr, chunk: Blob) -> io::Result<()> {
+    pub fn write(&mut self, _ptr: SectorPtr, _chunk: Blob) -> io::Result<()> {
         todo!()
     }
+}
 
+impl<F: Seek> Sectors<F> {
     fn seek(&mut self, ptr: SectorPtr) -> io::Result<u64> {
         let position = Self::START_POSITION + (ptr.index() as usize) * Self::SECTOR_SIZE;
         self.file.seek(SeekFrom::Start(position as u64))

@@ -1,19 +1,20 @@
 use std::{
-    io::{self, BufReader, Read, SeekFrom, Take},
+    io::{self, BufReader, Read, Seek, SeekFrom, Take, Write},
     mem::size_of,
     num::NonZeroU32,
+    ops::Range,
 };
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
-use crate::{pos::RegionLocalChunkPos, region::Filelike};
+use crate::pos::RegionLocalChunkPos;
 
 /// A table of 1024 [`SectorPtr`]s.
-pub struct SectorPtrTable<F: Filelike> {
+pub struct SectorPtrTable<F> {
     file: F,
 }
 
-impl<F: Filelike> SectorPtrTable<F> {
+impl<F> SectorPtrTable<F> {
     /// The number of [`SectorPtr`]s in the table.
     pub const LENGTH: usize = 1024;
 
@@ -27,7 +28,20 @@ impl<F: Filelike> SectorPtrTable<F> {
     pub fn new(file: F) -> Self {
         Self { file }
     }
+}
 
+impl<F: Seek> SectorPtrTable<F> {
+    fn seek(&mut self, pos: RegionLocalChunkPos) -> io::Result<u64> {
+        let position = Self::file_position(pos);
+        self.file.seek(SeekFrom::Start(position))
+    }
+
+    fn file_position(pos: RegionLocalChunkPos) -> u64 {
+        (Self::START_POSITION as u64) + pos.to_table_index() * (SectorPtr::SIZE as u64)
+    }
+}
+
+impl<F: Seek + Read> SectorPtrTable<F> {
     /// Reads the [`SectorPtr`] at the specified [`RegionLocalChunkPos`].
     pub fn read(&mut self, pos: RegionLocalChunkPos) -> io::Result<Option<SectorPtr>> {
         // go to the sector ptr's table position
@@ -37,6 +51,22 @@ impl<F: Filelike> SectorPtrTable<F> {
         Ok(SectorPtr::new(raw))
     }
 
+    /// Returns an iterator of all [`SectorPtr`]s in the table.
+    pub fn iter(&mut self) -> io::Result<SectorPtrTableIter<&mut F>> {
+        SectorPtrTableIter::new(&mut self.file)
+    }
+
+    /// Counts the number of non-zero [`SectorPtr`]s in the table.
+    pub fn count(&mut self) -> io::Result<u64> {
+        Ok(self
+            .iter()?
+            .flat_map(|(_, ptr)| ptr)
+            .filter(|ptr| ptr.len() > 0)
+            .count() as u64)
+    }
+}
+
+impl<F: Seek + Write> SectorPtrTable<F> {
     /// Writes the [`SectorPtr`] at the specified [`RegionLocalChunkPos`].
     pub fn write(&mut self, pos: RegionLocalChunkPos, ptr: Option<SectorPtr>) -> io::Result<()> {
         // go to the sector ptr's table position
@@ -45,22 +75,6 @@ impl<F: Filelike> SectorPtrTable<F> {
         let raw = SectorPtr::get(ptr);
         self.file.write_u32::<BigEndian>(raw)?;
         Ok(())
-    }
-
-    fn seek(&mut self, pos: RegionLocalChunkPos) -> io::Result<u64> {
-        let position =
-            (Self::START_POSITION as u64) + pos.as_table_index() * (SectorPtr::SIZE as u64);
-        self.file.seek(SeekFrom::Start(position))
-    }
-
-    /// Returns an iterator of all [`SectorPtr`]s in the table.
-    pub fn iter(&mut self) -> io::Result<SectorPtrTableIter<&mut F>> {
-        SectorPtrTableIter::new(&mut self.file)
-    }
-
-    /// Counts the number of non-zero [`SectorPtr`]s in the table.
-    pub fn count(&mut self) -> io::Result<u64> {
-        Ok(self.iter()?.flatten().filter(|ptr| ptr.len() > 0).count() as u64)
     }
 }
 
@@ -90,25 +104,35 @@ impl SectorPtr {
     pub fn len(&self) -> u8 {
         (self.0.get() & 0xFF) as u8
     }
+
+    /// Returns the range of indices that this [`SectorPtr`] points to.
+    pub fn indices(&self) -> Range<u32> {
+        let index = self.index();
+        let len = u32::from(self.len());
+
+        index..(index + len)
+    }
 }
 
 pub struct SectorPtrTableIter<F> {
     file: BufReader<Take<F>>,
+    index: u64,
     finished: bool,
 }
 
-impl<F: Filelike> SectorPtrTableIter<F> {
+impl<F: Seek + Read> SectorPtrTableIter<F> {
     pub fn new(mut file: F) -> io::Result<Self> {
         file.seek(SeekFrom::Start(SectorPtrTable::<F>::START_POSITION as u64))?;
         Ok(Self {
             file: BufReader::new(file.take(SectorPtrTable::<F>::SIZE as u64)),
+            index: 0,
             finished: false,
         })
     }
 }
 
-impl<F: Filelike> Iterator for SectorPtrTableIter<F> {
-    type Item = Option<SectorPtr>;
+impl<F: Read> Iterator for SectorPtrTableIter<F> {
+    type Item = (RegionLocalChunkPos, Option<SectorPtr>);
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.finished {
@@ -120,6 +144,10 @@ impl<F: Filelike> Iterator for SectorPtrTableIter<F> {
             self.finished = true;
             return None;
         };
-        Some(SectorPtr::new(raw))
+
+        self.index += 1;
+        let pos = RegionLocalChunkPos::from_table_index(self.index);
+
+        Some((pos, SectorPtr::new(raw)))
     }
 }
