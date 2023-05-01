@@ -10,6 +10,7 @@ minecrevy_core = { workspace = true }
 minecrevy_io = { workspace = true }
 minecrevy_text = { workspace = true }
 bevy = { workspace = true, default-features = false }
+dashmap = { workspace = true }
 flume = { workspace = true }
 futures-util = { workspace = true, features = ["sink"] }
 serde = { workspace = true }

@@ -24,12 +24,11 @@ pub type ClientIn<S> = With<PacketQueue<S>>;
 
 /// A [`WorldQuery`] for ergonomically interacting with Minecraft clients.
 #[derive(WorldQuery)]
-#[world_query(mutable)]
 pub struct Client<S: ProtocolState> {
     /// The socket connection.
     pub(crate) raw: &'static RawClient,
     /// The queue for incoming packets.
-    queue: &'static mut PacketQueue<S>,
+    queue: &'static PacketQueue<S>,
     /// The map of Packet Type => Packet ID.
     registry: &'static PacketRegistry<S>,
     /// Client info available after the initial handshake.
@@ -50,7 +49,7 @@ impl<S: ProtocolState> ClientItem<'_, S> {
         }
     }
 
-    pub fn read<T: Packet + McRead>(&mut self) -> Option<T> {
+    pub fn read<T: Packet + McRead>(&self) -> Option<T> {
         let version = self.version();
         let Some(id) = self.registry.incoming::<T>() else {
             self.raw.error(ClientError::unregistered::<T>(version));
@@ -66,7 +65,7 @@ impl<S: ProtocolState> ClientItem<'_, S> {
                     return None;
                 }
             }
-            // if let Some(meta) = T::meta() { TODO
+            // if let Some(meta) = T::meta() { TODO: needed for client side reading
             //     self.connection.meta(meta);
             // }
         }
@@ -87,7 +86,7 @@ impl<S: ProtocolState> ClientItem<'_, S> {
                     return None;
                 }
             }
-            // if let Some(meta) = T::meta() { TODO
+            // if let Some(meta) = T::meta() { TODO: needed for client side reading
             //     self.connection.meta(meta);
             // }
         }
@@ -95,7 +94,7 @@ impl<S: ProtocolState> ClientItem<'_, S> {
         None
     }
 
-    pub fn write<T: Packet + McWrite>(&mut self, packet: T) {
+    pub fn write<T: Packet + McWrite>(&self, packet: T) {
         let version = self.version();
         let Some(id) = self.registry.outgoing::<T>() else {
             self.raw.error(ClientError::unregistered::<T>(version));

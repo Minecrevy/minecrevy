@@ -2,14 +2,68 @@ use std::{
     any::TypeId,
     collections::{BTreeMap, HashMap},
     marker::PhantomData,
-    ops::RangeBounds,
+    ops::{Bound, RangeBounds},
     sync::Arc,
 };
 
 use bevy::prelude::*;
+use minecrevy_core::ecs::CommandExt;
 use minecrevy_io::{McRead, McWrite, Packet, ProtocolVersion, VersionRangeIter};
 
-use crate::protocol::state::ProtocolState;
+use crate::protocol::state::{Handshake, Login, Play, ProtocolState, Status};
+
+/// A [`Plugin`] that provides a [`VersionedPackets`] [`Resource`].
+///
+/// During [`Startup`], register via the [`VersionedPacketsBuilder`] [`Resource`],
+/// as the former one is read-only.
+pub struct PacketRegistryPlugin {
+    /// The [`ProtocolVersion`]s of Minecraft to support.
+    supported_versions: (Bound<ProtocolVersion>, Bound<ProtocolVersion>),
+}
+
+impl PacketRegistryPlugin {
+    pub fn new(supported_versions: impl RangeBounds<ProtocolVersion>) -> Self {
+        Self {
+            supported_versions: (
+                supported_versions.start_bound().cloned(),
+                supported_versions.end_bound().cloned(),
+            ),
+        }
+    }
+}
+
+impl Plugin for PacketRegistryPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(VersionedPacketsBuilder::<Handshake>::new(
+            self.supported_versions,
+        ))
+        .insert_resource(VersionedPacketsBuilder::<Status>::new(
+            self.supported_versions,
+        ))
+        .insert_resource(VersionedPacketsBuilder::<Login>::new(
+            self.supported_versions,
+        ))
+        .insert_resource(VersionedPacketsBuilder::<Play>::new(
+            self.supported_versions,
+        ));
+
+        app.add_systems(
+            PostStartup,
+            (
+                Self::build_registry::<Handshake>,
+                Self::build_registry::<Status>,
+                Self::build_registry::<Login>,
+                Self::build_registry::<Play>,
+            ),
+        );
+    }
+}
+
+impl PacketRegistryPlugin {
+    fn build_registry<S: ProtocolState>(mut commands: Commands) {
+        commands.replace_resource(|builder: VersionedPacketsBuilder<S>| builder.build());
+    }
+}
 
 /// A read-only [`Resource`] map that stores a registry of incoming and outgoing
 /// `Packet Type -> Packet ID` entries, grouped by [`ProtocolVersion`].
