@@ -145,4 +145,6 @@ pub struct NbtOptions {
     pub compression: Compression,
     /// The maximum length of the blob.
     pub max_len: Option<usize>,
+    /// The optional header used for serialization.
+    pub header: Option<&'static str>,
 }

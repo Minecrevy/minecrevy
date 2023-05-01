@@ -24,7 +24,7 @@ use std::io::{self, Read, Write};
 
 pub use minecrevy_io_macros::{McRead, McWrite, Packet};
 
-pub use self::version::*;
+pub use self::{impls::*, version::*};
 
 mod impls;
 pub mod options;
