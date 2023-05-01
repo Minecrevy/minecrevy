@@ -90,7 +90,7 @@ impl HandshakeFlowPlugin {
                 .remove::<(PacketQueue<Handshake>, PacketRegistry<Handshake>)>();
         }
 
-        for (entity, mut client) in &mut clients {
+        for (entity, client) in &mut clients {
             let _net = debug_span!("net", client = %client.addr()).entered();
 
             let mut entity = commands.entity(entity);

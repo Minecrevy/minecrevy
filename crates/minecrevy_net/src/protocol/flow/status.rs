@@ -44,7 +44,7 @@ impl StatusFlowPlugin {
     ) {
         let num_players = players.iter().count();
 
-        for (mut client, info, client_resp) in &mut clients {
+        for (client, info, client_resp) in &mut clients {
             if let Some(ping) = client.read::<PingRequest>() {
                 client.write(ping);
             }

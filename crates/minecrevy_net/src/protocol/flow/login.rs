@@ -46,7 +46,7 @@ impl LoginFlowPlugin {
         mut clients: Query<(Entity, Client<Login>), ClientEntered<Login>>,
     ) {
         // Begin channel negotiations
-        for (entity, mut client) in &mut clients {
+        for (entity, client) in &mut clients {
             if let Some(start) = client.read::<Start>() {
                 let mut entity = commands.entity(entity);
 
@@ -76,7 +76,7 @@ impl LoginFlowPlugin {
             Changed<FinishedHandlers>,
         >,
     ) {
-        for (entity, mut client, info, player, channels) in &mut clients {
+        for (entity, client, info, player, channels) in &mut clients {
             let _net = info_span!("net", client = %client.addr()).entered();
 
             // Send Login Success if all channels are finished negotiating.
