@@ -1,126 +1,106 @@
-//! An implementation of the Minecraft Anvil file format (`.mca`).
+use std::{fs::ReadDir, io, path::PathBuf};
 
-use std::{
-    fs::{File, ReadDir},
-    io,
-    path::{Path, PathBuf},
-    time::SystemTime,
-};
-
-use bevy::utils::{Entry, HashMap};
 use minecrevy_chunk::ChunkPos;
 use minecrevy_nbt::Blob;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use schnellru::{ByLength, LruMap};
+use serde::{de::DeserializeOwned, Serialize};
 
-pub use self::{pos::*, region::*};
-use crate::{pos::RegionLocalChunkPos, region::AnvilRegion};
+pub use self::region::*;
 
-mod pos;
 mod region;
 
-/// A folder of Minecraft region files.
+/// A collection of Minecraft region files stored in a single folder.
 pub struct AnvilStorage {
-    /// The folder where region files are stored.
+    /// The folder all accessible regions are stored in.
     folder: PathBuf,
-    /// The currently cached (open) region files.
-    cache: HashMap<RegionPos, AnvilRegion<File>>,
+    /// The currently opened region files.
+    cache: LruMap<RegionPos, AnvilRegion>,
 }
 
 impl AnvilStorage {
-    /// Constructs a new folder to load region files from.
+    /// The maximum size of the LRU region cache.
+    const CACHE_SIZE: u32 = 256;
+
+    /// Constructs an anvil region storage from the specified `folder`.
     pub fn new(folder: impl Into<PathBuf>) -> Self {
         Self {
             folder: folder.into(),
-            cache: HashMap::default(),
+            cache: LruMap::new(ByLength::new(Self::CACHE_SIZE)),
         }
     }
 
-    /// Returns the folder that region files are loaded from.
-    pub fn folder(&self) -> &Path {
-        &self.folder
+    /// Reads the [chunk](Blob) at the specified [pos](ChunkPos).
+    pub fn read_blob(&mut self, pos: ChunkPos) -> io::Result<Option<Blob>> {
+        let region = self.region(RegionPos::from(pos))?;
+
+        region.read_blob(RegionLocalChunkPos::from(pos))
     }
 
-    /// Returns `true` if the chunk at the specified [`ChunkPos`] exists.
-    pub fn contains(&mut self, pos: ChunkPos) -> bool {
-        let (region, local) = Self::split(pos);
+    /// Reads the chunk at the specified [pos](ChunkPos).
+    pub fn read<T: DeserializeOwned>(&mut self, pos: ChunkPos) -> io::Result<Option<T>> {
+        let region = self.region(RegionPos::from(pos))?;
 
-        if let Some(region) = self.cache.get_mut(&region) {
-            region.contains(local)
+        region.read::<T>(RegionLocalChunkPos::from(pos))
+    }
+
+    /// Writes the provided [chunk](Blob) at the specified [pos](ChunkPos).
+    pub fn write_blob(&mut self, pos: ChunkPos, chunk: Option<Blob>) -> io::Result<()> {
+        let region = self.region(RegionPos::from(pos))?;
+
+        if let Some(chunk) = chunk {
+            region.write_blob(RegionLocalChunkPos::from(pos), chunk)
         } else {
-            false
+            region.remove(RegionLocalChunkPos::from(pos))
         }
     }
 
-    /// Reads the chunk [`Blob`] at the specified [`ChunkPos`].
-    pub fn read(&mut self, pos: ChunkPos) -> io::Result<Option<Blob>> {
-        let (region, local) = Self::split(pos);
-        let region = self.region(region)?;
+    /// Writes the provided chunk at the specified [pos](ChunkPos).
+    pub fn write<T: Serialize>(&mut self, pos: ChunkPos, chunk: Option<T>) -> io::Result<()> {
+        let region = self.region(RegionPos::from(pos))?;
 
-        region.read(local)
+        if let Some(chunk) = chunk {
+            region.write(RegionLocalChunkPos::from(pos), chunk)
+        } else {
+            region.remove(RegionLocalChunkPos::from(pos))
+        }
     }
 
-    /// Reads the last time the chunk at the specified [`ChunkPos`] was modified.
-    pub fn last_modified(&mut self, pos: ChunkPos) -> io::Result<Option<SystemTime>> {
-        let (region, local) = Self::split(pos);
-        let region = self.region(region)?;
-
-        region.last_modified(local)
+    /// Constructs an iterator over all [`RegionPos`] contained in the folder.
+    pub fn regions(&self) -> io::Result<RegionPosIter> {
+        RegionPosIter::new(self)
     }
 
-    /// Writes the specified chunk [`Blob`] at the specified [`ChunkPos`].
-    pub fn write(&mut self, pos: ChunkPos, chunk: Blob) -> io::Result<()> {
-        let (region, local) = Self::split(pos);
-        let region = self.region(region)?;
-
-        region.write(local, chunk)
-    }
-
-    /// Closes/unloads the region at the specified [`RegionPos`].
-    pub fn close(&mut self, pos: RegionPos) -> bool {
-        self.cache.remove(&pos).is_some()
-    }
-
-    /// Returns the number of chunks currently stored in the region at the specified [`RegionPos`].
-    pub fn count_chunks(&mut self, pos: RegionPos) -> io::Result<u64> {
-        self.region(pos)?.count()
-    }
-
-    pub fn regions(&mut self) -> io::Result<RegionsIter> {
-        RegionsIter::new(self)
-    }
-
-    pub fn region(&mut self, pos: RegionPos) -> io::Result<&mut AnvilRegion<File>> {
+    /// Returns the [`AnvilRegion`] containing the specified [`ChunkPos`].
+    /// May fail during file validation.
+    pub fn region(&mut self, pos: RegionPos) -> io::Result<&mut AnvilRegion> {
+        // ensure the parent folder exists so we can create region files as necessary
         std::fs::create_dir_all(&self.folder)?;
 
-        match self.cache.entry(pos) {
-            Entry::Occupied(entry) => Ok(entry.into_mut()),
-            Entry::Vacant(entry) => {
-                let region = AnvilRegion::open_at(&self.folder, pos)?;
-                Ok(entry.insert(region))
-            }
-        }
-    }
-
-    /// Splits the specified [`ChunkPos`] into its corresponding [`RegionPos`] and [`RegionLocalChunkPos`].
-    fn split(chunk: ChunkPos) -> (RegionPos, RegionLocalChunkPos) {
-        (chunk.into(), chunk.into())
+        self.cache
+            .get_or_insert_fallible(pos, || {
+                let file_path = self.folder.join(pos.as_filename());
+                AnvilRegion::new(&file_path)
+            })
+            .map(|v| v.unwrap_or_else(|| unreachable!()))
     }
 }
 
-pub struct RegionsIter {
+/// An iterator of all [`RegionPos`] currently stored in an [`AnvilStorage`] folder.
+pub struct RegionPosIter {
     entries: ReadDir,
 }
 
-impl RegionsIter {
-    fn new(storage: &mut AnvilStorage) -> io::Result<Self> {
+impl RegionPosIter {
+    fn new(storage: &AnvilStorage) -> io::Result<Self> {
         Ok(Self {
             entries: storage.folder.read_dir()?,
         })
     }
 }
 
-impl Iterator for RegionsIter {
+impl Iterator for RegionPosIter {
     type Item = RegionPos;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -137,7 +117,7 @@ impl Iterator for RegionsIter {
         let file_name = file_name.to_str()?;
         let captures = FILE_NAME_REGEX.captures(file_name)?;
         let x: i32 = captures.get(1).unwrap().as_str().parse().ok()?;
-        let y: i32 = captures.get(2).unwrap().as_str().parse().ok()?;
-        Some(RegionPos::new(x, y))
+        let z: i32 = captures.get(2).unwrap().as_str().parse().ok()?;
+        Some(RegionPos { x, z })
     }
 }

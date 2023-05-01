@@ -1,118 +1,86 @@
-use std::io::{self, Cursor, ErrorKind, Read, Seek, SeekFrom, Write};
+use bitvec::{bitvec, order::Lsb0, vec::BitVec};
 
-use byteorder::{BigEndian, ReadBytesExt};
-use minecrevy_nbt::Blob;
+use crate::region::header::Offset;
 
-use crate::region::{
-    sector_ptr::{SectorPtr, SectorPtrTable},
-    timestamp::TimestampTable,
-};
+pub struct Sectors;
 
-/// A potentially-infinite collection of chunk [`Blob`]s.
-pub struct Sectors<F> {
-    file: F,
+impl Sectors {
+    /// The size of a single sector (as a `u64`).
+    pub const SIZE: u64 = 4096;
+
+    /// The size of a single sector (as a `usize`).
+    pub const USIZE: usize = Self::SIZE as usize;
+
+    /// The size of a chunk's header stored at the beginning of the chunk's
+    /// first sector. This includes the `i32` length and `u8` compression type.
+    pub const CHUNK_HEADER_SIZE: usize = 5;
 }
 
-impl<F> Sectors<F> {
-    /// The `file position` that sectors starts at.
-    const START_POSITION: usize = SectorPtrTable::<F>::SIZE + TimestampTable::<F>::SIZE;
+#[derive(Clone, Debug)]
+pub struct UsedSectors(BitVec);
 
-    /// The size (in bytes) of a single sector.
-    const SECTOR_SIZE: usize = 4096;
-
-    /// Constructs a new [`Sectors`] backed by the specified file.
-    pub fn new(file: F) -> Self {
-        Self { file }
+impl Default for UsedSectors {
+    fn default() -> Self {
+        // header always counts as 2 used sectors
+        Self(bitvec![1, 1])
     }
 }
 
-impl<F: Seek + Read> Sectors<F> {
-    /// Reads the [`Blob`] at the specified [`SectorPtr`].
-    pub fn read(&mut self, ptr: SectorPtr) -> io::Result<Blob> {
-        // go to the first sector's file position
-        self.seek(ptr)?;
+impl UsedSectors {
+    /// Marks the specified range of `sectors` as used.
+    pub fn force(&mut self, offset: Offset) {
+        let sectors = offset.sectors();
 
-        // check the length of the chunk data
-        let max_len = (ptr.len() as usize) * Self::SECTOR_SIZE;
-        let len = usize::try_from(self.file.read_u32::<BigEndian>()?)
-            .map_err(|_| io::Error::new(ErrorKind::InvalidData, "negative chunk data length"))?;
-        if len > max_len {
-            return Err(io::Error::new(
-                ErrorKind::InvalidData,
-                "chunk data length > max length",
-            ));
+        if sectors.end >= self.0.len() {
+            let additional = sectors.end - self.0.len() + 1;
+            self.0.extend(bitvec![0; additional]);
         }
 
-        let compression = Compression::try_from(self.file.read_u8()?)?;
-
-        let mut data = vec![0; len];
-        self.file.read_exact(&mut data)?;
-        compression.read_blob(Cursor::new(data))
-    }
-}
-
-impl<F: Seek + Write> Sectors<F> {
-    /// Writes the [`Blob`] at the specified [`SectorPtr`].
-    pub fn write(&mut self, _ptr: SectorPtr, _chunk: Blob) -> io::Result<()> {
-        todo!()
-    }
-}
-
-impl<F: Seek> Sectors<F> {
-    fn seek(&mut self, ptr: SectorPtr) -> io::Result<u64> {
-        let position = Self::START_POSITION + (ptr.index() as usize) * Self::SECTOR_SIZE;
-        self.file.seek(SeekFrom::Start(position as u64))
-    }
-}
-
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
-pub enum Compression {
-    GZip = 1,
-    #[default]
-    ZLib = 2,
-    None = 3,
-}
-
-impl Compression {
-    pub fn read_blob<R: Read>(&self, mut reader: R) -> io::Result<Blob> {
-        match self {
-            Compression::GZip => Blob::from_gzip_reader(&mut reader)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)),
-            Compression::ZLib => Blob::from_zlib_reader(&mut reader)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)),
-            Compression::None => Blob::from_reader(&mut reader)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e)),
+        for sector in sectors {
+            self.0.set(sector, true);
         }
     }
 
-    pub fn write_blob<W: Write>(&self, mut writer: W, blob: Blob) -> io::Result<()> {
-        match self {
-            Compression::GZip => blob
-                .to_gzip_writer(&mut writer)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?,
-            Compression::ZLib => blob
-                .to_zlib_writer(&mut writer)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?,
-            Compression::None => blob
-                .to_writer(&mut writer)
-                .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?,
-        };
-        Ok(())
+    /// Marks the specified range of `sectors` as free.
+    pub fn free(&mut self, offset: Offset) {
+        for sector in offset.sectors() {
+            self.0.set(sector, false);
+        }
     }
-}
 
-impl TryFrom<u8> for Compression {
-    type Error = io::Error;
+    /// Finds enough free space for `num_sectors` and returns the index of the first sector.
+    pub fn allocate(&mut self, num_sectors: usize) -> Offset {
+        let mut start: usize = 0;
 
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            1 => Ok(Self::GZip),
-            2 => Ok(Self::ZLib),
-            3 => Ok(Self::None),
-            v => Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                format!("invalid compression type: {}", v),
-            )),
+        loop {
+            if let Some(free) = self.0[start..].first_zero().map(|idx| start + idx) {
+                if let Some(used) = self.0[free..].first_one().map(|idx| free + idx) {
+                    if used - free >= num_sectors {
+                        // enough space between free and used bits
+                        let sectors = Offset::try_from(free..(free + num_sectors))
+                            .unwrap_or_else(|_| unreachable!());
+                        self.force(sectors);
+                        return sectors;
+                    } else {
+                        // not enough space between free and used bits
+                        start = used;
+                        continue;
+                    }
+                } else {
+                    // No used bits after our free bit
+                    let sectors = Offset::try_from(free..(free + num_sectors))
+                        .unwrap_or_else(|_| unreachable!());
+                    self.force(sectors);
+                    return sectors;
+                }
+            } else {
+                // No free bits in the current set.
+                // Extend at the end.
+                let sectors = Offset::try_from(self.0.len()..(self.0.len() + num_sectors))
+                    .unwrap_or_else(|_| unreachable!());
+                self.force(sectors);
+                return sectors;
+            }
         }
     }
 }

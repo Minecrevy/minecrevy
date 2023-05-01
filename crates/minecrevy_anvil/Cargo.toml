@@ -8,7 +8,11 @@ edition = { workspace = true }
 [dependencies]
 minecrevy_chunk = { workspace = true }
 minecrevy_nbt = { workspace = true }
-bevy = { workspace = true }
+bitvec = { workspace = true }
 byteorder = { workspace = true }
 once_cell = { workspace = true }
 regex = { workspace = true }
+schnellru = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
