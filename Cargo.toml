@@ -1,0 +1,66 @@
+[workspace]
+members = ["crates/*"]
+
+[workspace.package]
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/Minecrevy/minecrevy"
+repository = "https://github.com/Minecrevy/minecrevy"
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+# workspace
+minecrevy_io = { path = "crates/minecrevy_io" }
+minecrevy_io_macros = { path = "crates/minecrevy_io_macros" }
+minecrevy_net = { path = "crates/minecrevy_net" }
+minecrevy_protocol = { path = "crates/minecrevy_protocol" }
+minecrevy_std = { path = "crates/minecrevy_std" }
+minecrevy_text = { path = "crates/minecrevy_text" }
+# bevy
+bevy = "0.12"
+# concurrency and networking
+dashmap = "5.5"
+flume = "0.11"
+futures-util = "0.3"
+tokio = "1.34"
+tokio-util = "0.7"
+# serialization
+base64 = "0.21"
+byteorder = "1.5"
+bytes = "1.5"
+serde = "1.0"
+serde_json = "1.0"
+# logging
+tracing = "0.1"
+# utilities
+glam = "0.24"
+image = "0.24"
+thiserror = "1.0"
+uuid = "1.6"
+
+[package]
+name = "minecrevy"
+description = "A toolkit for building Minecraft servers in Rust with Bevy."
+keywords = ["bevy", "minecraft", "server", "engine", "gamedev"]
+categories = ["game-engines"]
+license = { workspace = true }
+homepage = { workspace = true }
+repository = { workspace = true }
+version = { workspace = true }
+edition = { workspace = true }
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dev-dependencies]
+# workspace
+minecrevy_net = { workspace = true }
+minecrevy_protocol = { workspace = true }
+minecrevy_std = { workspace = true }
+# bevy
+bevy = { workspace = true, default-features = false }
+# logging
+tracing = { workspace = true }
+
+# Enable max optimizations for dependencies, but not for our code:
+[profile.dev.package."*"]
+opt-level = 3
