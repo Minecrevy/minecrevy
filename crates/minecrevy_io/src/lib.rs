@@ -1,5 +1,3 @@
-#![feature(array_try_from_fn)]
-
 //! A library for encoding/decoding Minecraft packets and data types in the style of `serde`.
 //!
 //! # Example

@@ -128,7 +128,14 @@ impl<T: McRead, const N: usize> McRead for [T; N] {
     type Args = ArrayArgs<T::Args>;
 
     fn read(mut reader: impl Read, args: Self::Args) -> io::Result<Self> {
-        std::array::try_from_fn(|_| T::read(&mut reader, args.inner.clone()))
+        // TODO: use std::array::try_from_fn when stabilized
+        let mut vec = Vec::with_capacity(N);
+        for _ in 0..N {
+            vec.push(T::read(&mut reader, args.inner.clone())?);
+        }
+        Ok(vec
+            .try_into()
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "failed to convert vec to array"))?)
     }
 }
 
