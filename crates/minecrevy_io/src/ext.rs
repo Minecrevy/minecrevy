@@ -9,95 +9,155 @@ use crate::{packet::RawPacket, util::varint_bytes};
 
 /// Extends [Read] with methods for reading [Minecraft protocol data types][1].
 ///
-/// **Note:** All methods here use [BigEndian].
+/// **Note:** All methods here use [`BigEndian`].
 ///
 /// [1]: https://wiki.vg/Protocol#Data_types
 pub trait ReadMinecraftExt: Read {
     /// Reads an unsigned 8 bit integer as a boolean from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_bool(&mut self) -> io::Result<bool> {
         Ok(self.read_u8()? != 0x00)
     }
 
     /// Reads an unsigned 8 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_u8(&mut self) -> io::Result<u8> {
         ReadBytesExt::read_u8(self)
     }
 
     /// Reads an unsigned 16 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_u16(&mut self) -> io::Result<u16> {
         ReadBytesExt::read_u16::<BigEndian>(self)
     }
 
     /// Reads an unsigned 32 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_u32(&mut self) -> io::Result<u32> {
         ReadBytesExt::read_u32::<BigEndian>(self)
     }
 
     /// Reads an unsigned 64 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_u64(&mut self) -> io::Result<u64> {
         ReadBytesExt::read_u64::<BigEndian>(self)
     }
 
     /// Reads an unsigned 128 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_u128(&mut self) -> io::Result<u128> {
         ReadBytesExt::read_u128::<BigEndian>(self)
     }
 
     /// Reads a signed 8 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_i8(&mut self) -> io::Result<i8> {
         ReadBytesExt::read_i8(self)
     }
 
     /// Reads a signed 16 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_i16(&mut self) -> io::Result<i16> {
         ReadBytesExt::read_i16::<BigEndian>(self)
     }
 
     /// Reads a signed 32 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_i32(&mut self) -> io::Result<i32> {
         ReadBytesExt::read_i32::<BigEndian>(self)
     }
 
     /// Reads a signed 64 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_i64(&mut self) -> io::Result<i64> {
         ReadBytesExt::read_i64::<BigEndian>(self)
     }
 
     /// Reads a signed 128 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_i128(&mut self) -> io::Result<i128> {
         ReadBytesExt::read_i128::<BigEndian>(self)
     }
 
     /// Reads a 32 bit floating point number from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_f32(&mut self) -> io::Result<f32> {
         ReadBytesExt::read_f32::<BigEndian>(self)
     }
 
     /// Reads a 64 bit floating point number from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_f64(&mut self) -> io::Result<f64> {
         ReadBytesExt::read_f64::<BigEndian>(self)
     }
 
     /// Reads a [Uuid] as an unsigned 128 bit integer from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     #[inline]
     fn read_uuid(&mut self) -> io::Result<Uuid> {
         Ok(Uuid::from_u128(self.read_u128()?))
     }
 
     /// Reads a signed 32 bit integer from the underlying reader, using variable-length encoding.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     fn read_var_i32(&mut self) -> io::Result<i32> {
         pub const SEGMENT: u8 = 0b0111_1111;
         pub const CONTINUE: u8 = 0b1000_0000;
@@ -107,7 +167,7 @@ pub trait ReadMinecraftExt: Read {
 
         loop {
             let byte = self.read_u8()?;
-            value |= ((byte & SEGMENT) as i32) << position;
+            value |= (i32::from(byte & SEGMENT)) << position;
             position += 7;
 
             if position >= 32 {
@@ -124,6 +184,10 @@ pub trait ReadMinecraftExt: Read {
     }
 
     /// Reads a signed 32 bit integer as a usize from the underlying reader, using variable-length encoding.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     fn read_var_i32_len(&mut self) -> io::Result<usize> {
         let value = self.read_var_i32()?;
         let value = usize::try_from(value).map_err(|_| {
@@ -136,6 +200,10 @@ pub trait ReadMinecraftExt: Read {
     }
 
     /// Reads a signed 64 bit integer from the underlying reader, using variable-length encoding.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     fn read_var_i64(&mut self) -> io::Result<i64> {
         pub const SEGMENT: u8 = 0b0111_1111;
         pub const CONTINUE: u8 = 0b1000_0000;
@@ -145,7 +213,7 @@ pub trait ReadMinecraftExt: Read {
 
         loop {
             let byte = self.read_u8()?;
-            value |= ((byte & SEGMENT) as i64) << position;
+            value |= (i64::from(byte & SEGMENT)) << position;
             position += 7;
 
             if position >= 64 {
@@ -162,6 +230,10 @@ pub trait ReadMinecraftExt: Read {
     }
 
     /// Reads a number of bytes from the underlying reader, with a variable-length 32 bit integer as the length prefix.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     fn read_bytes_var_i32(&mut self) -> io::Result<Vec<u8>> {
         let len = self.read_var_i32_len()?;
         let mut bytes = vec![0; len];
@@ -170,6 +242,10 @@ pub trait ReadMinecraftExt: Read {
     }
 
     /// Reads all remaining bytes from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     fn read_bytes_remaining(&mut self) -> io::Result<Vec<u8>> {
         let mut bytes = Vec::new();
         self.read_to_end(&mut bytes)?;
@@ -177,6 +253,10 @@ pub trait ReadMinecraftExt: Read {
     }
 
     /// Reads a [String] from the underlying reader, with a variable-length 32 bit integer as the length prefix.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     fn read_string(&mut self) -> io::Result<String> {
         let bytes = self.read_bytes_var_i32()?;
         let string = String::from_utf8(bytes).map_err(|_| {
@@ -189,6 +269,10 @@ pub trait ReadMinecraftExt: Read {
     }
 
     /// Reads a single [packet][`RawPacket`] from the underlying reader.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying reader returns an error, this function will return that error.
     fn read_packet(&mut self) -> io::Result<RawPacket> {
         let len = self.read_var_i32_len()?;
         let mut reader = self.take(len as u64);
@@ -207,94 +291,154 @@ impl<T: Read> ReadMinecraftExt for T {}
 
 /// Extends [Write] with methods for writing [Minecraft protocol data types][1].
 ///
-/// **Note:** All methods here use [BigEndian].
+/// **Note:** All methods here use [`BigEndian`].
 ///
 /// [1]: https://wiki.vg/Protocol#Data_types
 pub trait WriteMinecraftExt: Write {
     /// Writes an unsigned 8 bit integer as a boolean to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     fn write_bool(&mut self, v: bool) -> io::Result<()> {
-        self.write_u8(if v { 0x01 } else { 0x00 })
+        self.write_u8(u8::from(v))
     }
 
     /// Writes an unsigned 8 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_u8(&mut self, v: u8) -> io::Result<()> {
         WriteBytesExt::write_u8(self, v)
     }
 
     /// Writes an unsigned 16 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_u16(&mut self, v: u16) -> io::Result<()> {
         WriteBytesExt::write_u16::<BigEndian>(self, v)
     }
 
     /// Writes an unsigned 32 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_u32(&mut self, v: u32) -> io::Result<()> {
         WriteBytesExt::write_u32::<BigEndian>(self, v)
     }
 
     /// Writes an unsigned 64 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_u64(&mut self, v: u64) -> io::Result<()> {
         WriteBytesExt::write_u64::<BigEndian>(self, v)
     }
 
     /// Writes an unsigned 128 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_u128(&mut self, v: u128) -> io::Result<()> {
         WriteBytesExt::write_u128::<BigEndian>(self, v)
     }
 
     /// Writes a signed 8 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_i8(&mut self, v: i8) -> io::Result<()> {
         WriteBytesExt::write_i8(self, v)
     }
 
     /// Writes a signed 16 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_i16(&mut self, v: i16) -> io::Result<()> {
         WriteBytesExt::write_i16::<BigEndian>(self, v)
     }
 
     /// Writes a signed 32 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_i32(&mut self, v: i32) -> io::Result<()> {
         WriteBytesExt::write_i32::<BigEndian>(self, v)
     }
 
     /// Writes a signed 64 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_i64(&mut self, v: i64) -> io::Result<()> {
         WriteBytesExt::write_i64::<BigEndian>(self, v)
     }
 
     /// Writes a signed 128 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_i128(&mut self, v: i128) -> io::Result<()> {
         WriteBytesExt::write_i128::<BigEndian>(self, v)
     }
 
     /// Writes a 32 bit floating point number to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_f32(&mut self, v: f32) -> io::Result<()> {
         WriteBytesExt::write_f32::<BigEndian>(self, v)
     }
 
     /// Writes a 64 bit floating point number to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_f64(&mut self, v: f64) -> io::Result<()> {
         WriteBytesExt::write_f64::<BigEndian>(self, v)
     }
 
     /// Writes a [Uuid] as an unsigned 128 bit integer to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_uuid(&mut self, v: Uuid) -> io::Result<()> {
         self.write_u128(v.as_u128())
     }
 
     /// Writes a signed 32 bit integer to the underlying writer, using variable-length encoding.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     fn write_var_i32(&mut self, v: i32) -> io::Result<()> {
         pub const MASK: u32 = 0xFF_FF_FF_FF;
         pub const SEGMENT: u32 = 0b0111_1111;
@@ -331,6 +475,10 @@ pub trait WriteMinecraftExt: Write {
     }
 
     /// Writes a usize as a signed 32 bit integer to the underlying writer, using variable-length encoding.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     fn write_var_i32_len(&mut self, v: usize) -> io::Result<()> {
         let v = i32::try_from(v).map_err(|_| {
             io::Error::new(
@@ -342,6 +490,10 @@ pub trait WriteMinecraftExt: Write {
     }
 
     /// Writes a signed 64 bit integer to the underlying writer, using variable-length encoding.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     fn write_var_i64(&mut self, v: i64) -> io::Result<()> {
         let mut v = v as u32;
         loop {
@@ -356,24 +508,40 @@ pub trait WriteMinecraftExt: Write {
     }
 
     /// Writes a number of bytes to the underlying writer, with a variable-length 32 bit integer as the length prefix.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     fn write_bytes_var_i32(&mut self, v: &[u8]) -> io::Result<()> {
         self.write_var_i32_len(v.len())?;
         self.write_all(v)
     }
 
     /// Writes all bytes to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_bytes_remaining(&mut self, v: &[u8]) -> io::Result<()> {
         self.write_all(v)
     }
 
     /// Writes a [String] to the underlying writer, with a variable-length 32 bit integer as the length prefix.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     #[inline]
     fn write_string(&mut self, v: &str) -> io::Result<()> {
         self.write_bytes_var_i32(v.as_bytes())
     }
 
     /// Writes a single [packet][`RawPacket`] to the underlying writer.
+    ///
+    /// # Errors
+    ///
+    /// If the underlying writer returns an error, this function will return that error.
     fn write_packet(&mut self, packet: &RawPacket) -> io::Result<()> {
         self.write_var_i32_len(packet.len())?;
         self.write_var_i32(packet.id)?;

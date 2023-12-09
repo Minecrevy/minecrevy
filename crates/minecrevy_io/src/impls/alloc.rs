@@ -16,10 +16,7 @@ impl McRead for String {
             Some(max_len) if len > max_len => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!(
-                        "exceeded max string length (max: {}, actual: {})",
-                        max_len, len
-                    ),
+                    format!("exceeded max string length (max: {max_len}, actual: {len})"),
                 ))
             }
             _ => {}

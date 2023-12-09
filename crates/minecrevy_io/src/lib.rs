@@ -18,6 +18,7 @@
 //! ```
 
 #![warn(missing_docs)]
+#![allow(clippy::module_name_repetitions)]
 
 use std::io;
 
@@ -44,9 +45,17 @@ pub trait McRead: Sized {
     type Args: Clone + Default;
 
     /// Reads this type from the given reader.
+    ///
+    /// # Errors
+    ///
+    /// If the reader returns an error, this function will return that error.
     fn read(reader: impl io::Read, args: Self::Args) -> io::Result<Self>;
 
     /// Reads this type from the given reader with default arguments.
+    ///
+    /// # Errors
+    ///
+    /// If the reader returns an error, this function will return that error.
     fn read_default(reader: impl io::Read) -> io::Result<Self> {
         Self::read(reader, Self::Args::default())
     }
@@ -58,9 +67,17 @@ pub trait McWrite: Sized {
     type Args: Clone + Default;
 
     /// Writes this type to the given writer.
+    ///
+    /// # Errors
+    ///
+    /// If the writer returns an error, this function will return that error.
     fn write(&self, writer: impl io::Write, args: Self::Args) -> io::Result<()>;
 
     /// Writes this type to the given writer with default arguments.
+    ///
+    /// # Errors
+    ///
+    /// If the writer returns an error, this function will return that error.
     fn write_default(&self, writer: impl io::Write) -> io::Result<()> {
         self.write(writer, Self::Args::default())
     }

@@ -1,7 +1,7 @@
 //! Configurable arguments for customizing how encode and decode operations
 //! work for data types.
 //!
-//! - Want to use a VarInt? Set the `varint` flag in [`IntArgs`].
+//! - Want to use a `VarInt`? Set the `varint` flag in [`IntArgs`].
 //! - Want to protect memory usage for strings? Set the `max_len` arg in [`StringArgs`].
 
 /// Arguments for reading and writing 32-bit and 64-bit integers.

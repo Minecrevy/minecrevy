@@ -12,8 +12,8 @@ use crate::util::varint_bytes;
 /// # [Packet format][1]
 /// | Field Name | Field Type | Notes                        |
 /// |------------|------------|------------------------------|
-/// | Length     | VarInt     | Length of (Packet ID + Data) |
-/// | Packet ID  | VarInt     |                              |
+/// | Length     | `VarInt`   | Length of (Packet ID + Data) |
+/// | Packet ID  | `VarInt`   |                              |
 /// | Data       | Byte Array | Contents depend on Packet ID |
 ///
 /// [1]: https://wiki.vg/Protocol#Packet_format
@@ -29,6 +29,8 @@ impl RawPacket {
     /// Returns the length of the packet.
     ///
     /// This corresponds to the Length field in the packet format mentioned [here][RawPacket].
+    #[allow(clippy::len_without_is_empty)]
+    #[must_use]
     pub fn len(&self) -> usize {
         let id_len = varint_bytes(self.id);
         let body_len = self.body.len();
@@ -36,11 +38,13 @@ impl RawPacket {
     }
 
     /// Returns an opaque [`Read`] for reading from this packet's body.
+    #[must_use]
     pub fn reader(&self) -> impl Read + '_ {
         Cursor::new(&self.body)
     }
 
     /// Returns an opaque [`Write`] for writing to this packet's body.
+    #[must_use]
     pub fn writer(&mut self) -> impl Write + '_ {
         Cursor::new(&mut self.body)
     }
@@ -50,7 +54,7 @@ impl fmt::Debug for RawPacket {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut data = String::new();
         for &byte in &self.body {
-            write!(data, "{:02X}", byte)?;
+            write!(data, "{byte:02X}")?;
         }
 
         write!(f, "RawPacket({:#X}, {})", self.id, data)
@@ -87,8 +91,8 @@ pub mod codec {
         fn default() -> Self {
             Self {
                 timeout: Duration::from_secs(30),
-                compression_threshold: Default::default(),
-                encryption_key: Default::default(),
+                compression_threshold: None,
+                encryption_key: None,
             }
         }
     }
@@ -105,6 +109,7 @@ pub mod codec {
 
     impl RawPacketCodec {
         /// Creates a new [`RawPacketCodec`] with the given settings.
+        #[must_use]
         pub fn new(settings: Arc<PacketCodecSettings>) -> Self {
             Self {
                 settings,

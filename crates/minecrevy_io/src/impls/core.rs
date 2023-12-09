@@ -66,9 +66,10 @@ impl McRead for i32 {
     type Args = IntArgs;
 
     fn read(mut reader: impl Read, args: Self::Args) -> io::Result<Self> {
-        match args.varint {
-            true => reader.read_var_i32(),
-            false => reader.read_i32(),
+        if args.varint {
+            reader.read_var_i32()
+        } else {
+            reader.read_i32()
         }
     }
 }
@@ -77,9 +78,10 @@ impl McWrite for i32 {
     type Args = IntArgs;
 
     fn write(&self, mut writer: impl Write, args: Self::Args) -> io::Result<()> {
-        match args.varint {
-            true => writer.write_var_i32(*self),
-            false => writer.write_i32(*self),
+        if args.varint {
+            writer.write_var_i32(*self)
+        } else {
+            writer.write_i32(*self)
         }
     }
 }
@@ -88,9 +90,10 @@ impl McRead for i64 {
     type Args = IntArgs;
 
     fn read(mut reader: impl Read, args: Self::Args) -> io::Result<Self> {
-        match args.varint {
-            true => reader.read_var_i64(),
-            false => reader.read_i64(),
+        if args.varint {
+            reader.read_var_i64()
+        } else {
+            reader.read_i64()
         }
     }
 }
@@ -99,9 +102,10 @@ impl McWrite for i64 {
     type Args = IntArgs;
 
     fn write(&self, mut writer: impl Write, args: Self::Args) -> io::Result<()> {
-        match args.varint {
-            true => writer.write_var_i64(*self),
-            false => writer.write_i64(*self),
+        if args.varint {
+            writer.write_var_i64(*self)
+        } else {
+            writer.write_i64(*self)
         }
     }
 }
@@ -111,7 +115,7 @@ impl McRead for bool {
 
     #[inline]
     fn read(mut reader: impl Read, (): Self::Args) -> io::Result<Self> {
-        Ok(reader.read_u8()? != 0x00)
+        reader.read_bool()
     }
 }
 
@@ -120,7 +124,7 @@ impl McWrite for bool {
 
     #[inline]
     fn write(&self, mut writer: impl Write, (): Self::Args) -> io::Result<()> {
-        writer.write_u8(if *self { 0x01 } else { 0x00 })
+        writer.write_bool(*self)
     }
 }
 
@@ -133,9 +137,8 @@ impl<T: McRead, const N: usize> McRead for [T; N] {
         for _ in 0..N {
             vec.push(T::read(&mut reader, args.inner.clone())?);
         }
-        Ok(vec
-            .try_into()
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "failed to convert vec to array"))?)
+        vec.try_into()
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "failed to convert vec to array"))
     }
 }
 
@@ -154,7 +157,7 @@ impl<'a, T: McWrite> McWrite for &'a [T] {
     type Args = ListArgs<T::Args>;
 
     fn write(&self, mut writer: impl Write, args: Self::Args) -> io::Result<()> {
-        for val in self.iter() {
+        for val in *self {
             val.write(&mut writer, args.inner.clone())?;
         }
         Ok(())
@@ -176,7 +179,7 @@ impl<T: McRead> McRead for Option<T> {
             OptionTag::Remaining => match T::read(reader, args.inner) {
                 Ok(v) => Ok(Some(v)),
                 Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => Ok(None),
-                Err(e) => return Err(e),
+                Err(e) => Err(e),
             },
         }
     }

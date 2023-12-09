@@ -1,10 +1,10 @@
-//! Utility functions for the minecrevy_io crate.
+//! Utility functions for the `minecrevy_io` crate.
 
 use std::sync::OnceLock;
 
 /// Returns the number of bytes required to encode the given value as a varint.
 pub fn varint_bytes(value: i32) -> usize {
-    const VARINT_EXACT_BYTE_LENGTHS: OnceLock<[usize; 33]> = OnceLock::<[usize; 33]>::new();
+    static VARINT_EXACT_BYTE_LENGTHS: OnceLock<[usize; 33]> = OnceLock::<[usize; 33]>::new();
 
     VARINT_EXACT_BYTE_LENGTHS.get_or_init(|| {
         std::array::from_fn(|i| {
