@@ -10,7 +10,6 @@ edition = "2021"
 [workspace.dependencies]
 # workspace
 minecrevy_io = { path = "crates/minecrevy_io" }
-minecrevy_io_macros = { path = "crates/minecrevy_io_macros" }
 minecrevy_net = { path = "crates/minecrevy_net" }
 minecrevy_protocol = { path = "crates/minecrevy_protocol" }
 minecrevy_std = { path = "crates/minecrevy_std" }

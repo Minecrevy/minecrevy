@@ -15,5 +15,5 @@ edition = { workspace = true }
 # workspace
 minecrevy_io = { workspace = true }
 # serialization
-serde = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
