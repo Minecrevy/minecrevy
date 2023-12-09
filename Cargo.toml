@@ -5,7 +5,6 @@ members = ["crates/*"]
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/Minecrevy/minecrevy"
 repository = "https://github.com/Minecrevy/minecrevy"
-version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
@@ -43,10 +42,10 @@ name = "minecrevy"
 description = "A toolkit for building Minecraft servers in Rust with Bevy."
 keywords = ["bevy", "minecraft", "server", "engine", "gamedev"]
 categories = ["game-engines"]
+version = "0.1.0"
 license = { workspace = true }
 homepage = { workspace = true }
 repository = { workspace = true }
-version = { workspace = true }
 edition = { workspace = true }
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
