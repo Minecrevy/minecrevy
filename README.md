@@ -12,7 +12,7 @@ Minecrevy **is not** a Minecraft server; it's a framework for building one.
 
 ## Non-Goals
 
-### A Comprehensive Solution
+### An out-of-the-box Solution
 
 Minecrevy will not provide a production-ready Vanilla Minecraft server, but it
 will provide the *tools* for a developer to make one.
@@ -43,3 +43,12 @@ of server with the tools provided by Minecrevy.
 ### 0.3.0 - World Viewer Server
 
 - [ ] Send chunks, read only
+
+## License
+
+This code repository is dual-licensed under either:
+
+- MIT License
+- Apache License, Version 2.0
+
+at your option.
