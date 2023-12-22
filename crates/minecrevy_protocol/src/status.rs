@@ -2,35 +2,10 @@
 
 use std::io::{self, Read, Write};
 
-use minecrevy_io::{
-    args::{IntArgs, StringArgs},
-    McRead, McWrite,
-};
+use minecrevy_io::{args::StringArgs, McRead, McWrite};
 use minecrevy_text::Text;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
-/// A packet sent by the client to determine latency.
-///
-/// The server should respond with a [`Ping`] packet containing the same payload.
-#[derive(Clone, PartialEq, Debug)]
-pub struct Ping(pub i64);
-
-impl McRead for Ping {
-    type Args = ();
-
-    fn read(reader: impl io::Read, (): Self::Args) -> io::Result<Self> {
-        Ok(Self(i64::read(reader, IntArgs { varint: false })?))
-    }
-}
-
-impl McWrite for Ping {
-    type Args = ();
-
-    fn write(&self, writer: impl io::Write, (): Self::Args) -> io::Result<()> {
-        i64::write(&self.0, writer, IntArgs { varint: false })
-    }
-}
 
 /// A packet sent by the client to request server MOTD, favicon, and player info.
 #[derive(Clone, PartialEq, Debug)]

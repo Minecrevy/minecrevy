@@ -39,24 +39,8 @@ impl McRead for String {
 impl McWrite for String {
     type Args = StringArgs;
 
-    fn write(&self, mut writer: impl Write, args: Self::Args) -> io::Result<()> {
-        match args.max_len {
-            Some(max_len) if self.len() > max_len => {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidData,
-                    format!(
-                        "exceeded max string length (max: {}, actual: {})",
-                        max_len,
-                        self.len()
-                    ),
-                ))
-            }
-            _ => {}
-        }
-
-        writer.write_var_i32_len(self.len())?;
-        writer.write_all(self.as_bytes())?;
-        Ok(())
+    fn write(&self, writer: impl Write, args: Self::Args) -> io::Result<()> {
+        self.as_str().write(writer, args)
     }
 }
 

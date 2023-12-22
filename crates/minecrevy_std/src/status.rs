@@ -5,17 +5,15 @@ use std::io::Cursor;
 use base64::Engine;
 use bevy::prelude::*;
 use image::{imageops::FilterType, ImageOutputFormat};
-use minecrevy_net::{client::ClientQ, packet::Recv};
+use minecrevy_net::{client::ClientQReadOnly, packet::Recv};
 use minecrevy_protocol::{
-    status::{Ping, Request, Response, ResponsePlayers, ResponseVersion},
+    common::PingRequest,
+    status::{Request, Response, ResponsePlayers, ResponseVersion},
     PacketHandlerSet, ServerProtocolPlugin,
 };
 use minecrevy_text::Text;
 
-use crate::{
-    handshake::{ClientInfo, HandshakePlugin},
-    CorePlugin, DynamicImage, PlayerCount,
-};
+use crate::{handshake::ConnectionInfo, profile::Profile, CorePlugin, DynamicImage, PlayerCount};
 
 /// [`Plugin`] for handling status packets.
 #[derive(Default)]
@@ -24,6 +22,10 @@ pub struct StatusPlugin {
     pub motd: Option<Text>,
     /// The filename of the favicon to display in the server list.
     pub favicon_filename: Option<String>,
+    /// Whether or not to show the list of players in the server list.
+    ///
+    /// Be mindful that this can be a privacy concern.
+    pub show_players: bool,
 }
 
 impl Plugin for StatusPlugin {
@@ -40,12 +42,9 @@ impl Plugin for StatusPlugin {
             std::any::type_name::<CorePlugin>(),
             std::any::type_name::<Self>(),
         );
-        assert!(
-            app.is_plugin_added::<HandshakePlugin>(),
-            "{} must be added before {}",
-            std::any::type_name::<HandshakePlugin>(),
-            std::any::type_name::<Self>(),
-        );
+
+        // Insert the player list visibility.
+        app.insert_resource(ShowPlayers(self.show_players));
 
         // Use the provided MOTD, or the default if none was provided.
         app.insert_resource(self.motd.clone().map(Motd).unwrap_or_default());
@@ -77,8 +76,10 @@ impl StatusPlugin {
     /// [`System`] that handles displaying the MOTD and favicon to clients in the server list.
     pub fn handle_status_requests(
         mut requests: EventReader<Recv<Request>>,
-        clients: Query<(ClientQ, &ClientInfo)>,
+        clients: Query<(ClientQReadOnly, &ConnectionInfo)>,
+        players: Query<&Profile>,
         counts: Res<PlayerCount>,
+        show_players: Res<ShowPlayers>,
         motd: Res<Motd>,
         favicon: Res<Favicon>,
         mut images: ResMut<Assets<DynamicImage>>,
@@ -147,7 +148,11 @@ impl StatusPlugin {
                 players: ResponsePlayers {
                     max: counts.max,
                     online: counts.online,
-                    sample: Vec::new(),
+                    sample: if **show_players {
+                        players.iter().map(|v| v.into()).collect::<Vec<_>>()
+                    } else {
+                        Vec::new()
+                    },
                 },
                 description: motd.0.clone(),
                 favicon: favicon_cache.as_ref().map(|f| &f.data).cloned(),
@@ -158,7 +163,10 @@ impl StatusPlugin {
     }
 
     /// [`System`] that responds to clients' ping requests.
-    pub fn handle_status_pings(mut packets: EventReader<Recv<Ping>>, clients: Query<ClientQ>) {
+    pub fn handle_status_pings(
+        mut packets: EventReader<Recv<PingRequest>>,
+        clients: Query<ClientQReadOnly>,
+    ) {
         for Recv { client, packet } in packets.read() {
             let Ok(client) = clients.get(*client) else {
                 continue;
@@ -168,6 +176,11 @@ impl StatusPlugin {
         }
     }
 }
+
+/// [`Resource`] for whether or not to show the list of players in the server list.
+#[derive(Resource, Deref, DerefMut)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct ShowPlayers(pub bool);
 
 /// [`Resource`] for the message of the day. Displayed in the server list.
 #[derive(Resource, Deref, DerefMut)]

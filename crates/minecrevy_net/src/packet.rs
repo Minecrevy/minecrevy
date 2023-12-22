@@ -17,6 +17,7 @@ use crate::client::ProtocolState;
 
 /// [`Event`] emitted for each incoming packet.
 #[derive(Event)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Recv<T: McRead> {
     /// The entity with the [`crate::client::Client`] component.
     pub client: Entity,

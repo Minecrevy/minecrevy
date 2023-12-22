@@ -34,6 +34,7 @@ fn main() {
         .add_plugins(StatusPlugin {
             motd: Some("A Ping Server".into()),
             favicon_filename: Some("server-icon.png".into()),
+            show_players: false,
         })
         .add_systems(Startup, start_server("127.0.0.1", 25565))
         .run();

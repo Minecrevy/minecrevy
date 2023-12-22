@@ -1,0 +1,262 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "type": "object",
+    "additionalProperties": {
+        "$ref": "#/definitions/Item"
+    },
+    "definitions": {
+        "Item": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "mojangName": {
+                    "type": "string"
+                },
+                "rarity": {
+                    "$ref": "#/definitions/Rarity"
+                },
+                "translationKey": {
+                    "type": "string"
+                },
+                "depletes": {
+                    "type": "boolean"
+                },
+                "maxStackSize": {
+                    "type": "integer"
+                },
+                "maxDamage": {
+                    "type": "integer"
+                },
+                "edible": {
+                    "type": "boolean"
+                },
+                "fireResistant": {
+                    "type": "boolean"
+                },
+                "blockId": {
+                    "type": "string"
+                },
+                "eatingSound": {
+                    "$ref": "#/definitions/EatingSound"
+                },
+                "drinkingSound": {
+                    "$ref": "#/definitions/DrinkingSound"
+                },
+                "specificItemData": {
+                    "$ref": "#/definitions/SpecificItemData"
+                },
+                "foodProperties": {
+                    "$ref": "#/definitions/FoodProperties"
+                }
+            },
+            "required": [
+                "blockId",
+                "depletes",
+                "drinkingSound",
+                "eatingSound",
+                "edible",
+                "fireResistant",
+                "id",
+                "maxDamage",
+                "maxStackSize",
+                "mojangName",
+                "rarity",
+                "specificItemData",
+                "translationKey"
+            ],
+            "title": "Item"
+        },
+        "FoodProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "alwaysEdible": {
+                    "type": "boolean"
+                },
+                "isFastFood": {
+                    "type": "boolean"
+                },
+                "nutrition": {
+                    "type": "integer"
+                },
+                "saturationModifier": {
+                    "type": "number"
+                },
+                "effects": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Effect"
+                    }
+                }
+            },
+            "required": [
+                "alwaysEdible",
+                "effects",
+                "isFastFood",
+                "nutrition",
+                "saturationModifier"
+            ],
+            "title": "FoodProperties"
+        },
+        "Effect": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "amplifier": {
+                    "type": "integer"
+                },
+                "duration": {
+                    "type": "integer"
+                },
+                "chance": {
+                    "type": "number"
+                }
+            },
+            "required": [
+                "amplifier",
+                "chance",
+                "duration",
+                "id"
+            ],
+            "title": "Effect"
+        },
+        "SpecificItemData": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "spawnEggProperties": {
+                    "$ref": "#/definitions/SpawnEggProperties"
+                },
+                "bucketItemProperties": {
+                    "$ref": "#/definitions/BucketItemProperties"
+                },
+                "dyeItemProperties": {
+                    "$ref": "#/definitions/DyeItemProperties"
+                },
+                "armorProperties": {
+                    "$ref": "#/definitions/ArmorProperties"
+                },
+                "tieredItemProperties": {
+                    "$ref": "#/definitions/TieredItemProperties"
+                }
+            },
+            "required": [],
+            "title": "SpecificItemData"
+        },
+        "ArmorProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "defense": {
+                    "type": "integer"
+                },
+                "toughness": {
+                    "type": "number"
+                },
+                "slot": {
+                    "$ref": "#/definitions/Slot"
+                }
+            },
+            "required": [
+                "defense",
+                "slot",
+                "toughness"
+            ],
+            "title": "ArmorProperties"
+        },
+        "BucketItemProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "fluid": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "fluid"
+            ],
+            "title": "BucketItemProperties"
+        },
+        "DyeItemProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "dyeColor": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "dyeColor"
+            ],
+            "title": "DyeItemProperties"
+        },
+        "SpawnEggProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "entityType": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "entityType"
+            ],
+            "title": "SpawnEggProperties"
+        },
+        "TieredItemProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "tier": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "tier"
+            ],
+            "title": "TieredItemProperties"
+        },
+        "DrinkingSound": {
+            "type": "string",
+            "enum": [
+                "minecraft:entity.generic.drink",
+                "minecraft:item.honey_bottle.drink"
+            ],
+            "title": "DrinkingSound"
+        },
+        "EatingSound": {
+            "type": "string",
+            "enum": [
+                "minecraft:entity.generic.eat",
+                "minecraft:item.honey_bottle.drink"
+            ],
+            "title": "EatingSound"
+        },
+        "Rarity": {
+            "type": "string",
+            "enum": [
+                "COMMON",
+                "EPIC",
+                "RARE",
+                "UNCOMMON"
+            ],
+            "title": "Rarity"
+        },
+        "Slot": {
+            "type": "string",
+            "enum": [
+                "feet",
+                "chest",
+                "head",
+                "legs"
+            ],
+            "title": "Slot"
+        }
+    }
+}

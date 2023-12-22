@@ -23,19 +23,27 @@ impl Plugin for ClientPlugin {
 
 /// [`WorldQuery`] for ergonomic access to [`Client`] components.
 #[derive(WorldQuery)]
+#[world_query(mutable)]
 pub struct ClientQ {
     /// The [`Client`] component.
     pub client: &'static Client,
     /// The [`PacketIds`] component.
     pub ids: &'static PacketIds,
     /// The [`ProtocolState`] component.
-    pub state: &'static ProtocolState,
+    pub state: &'static mut ProtocolState,
 }
 
 impl ClientQItem<'_> {
     /// Sends the given packet to the client.
     pub fn send<T: McWrite + 'static>(&self, packet: T) -> FlushOnDrop<'_> {
-        self.client.send(self.ids, self.state, packet)
+        self.client.send(self.ids, &self.state, packet)
+    }
+}
+
+impl ClientQReadOnlyItem<'_> {
+    /// Sends the given packet to the client.
+    pub fn send<T: McWrite + 'static>(&self, packet: T) -> FlushOnDrop<'_> {
+        self.client.send(self.ids, &self.state, packet)
     }
 }
 

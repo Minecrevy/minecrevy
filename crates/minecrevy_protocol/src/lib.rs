@@ -5,6 +5,7 @@
 use bevy::prelude::*;
 use minecrevy_net::{client::ProtocolState, AppNetworkExt, NetworkPlugin};
 
+pub mod common;
 pub mod config;
 pub mod handshake;
 pub mod login;
@@ -62,15 +63,16 @@ impl Plugin for ServerProtocolPlugin {
             app.add_login_packets();
             app.add_systems(Update, apply_deferred.in_set(PacketHandlerSet::LoginApply));
         }
+        if self.config {
+            app.add_config_packets();
+            app.add_systems(Update, apply_deferred.in_set(PacketHandlerSet::ConfigApply));
+        }
         if self.play {
             app.add_play_packets();
             app.add_systems(Update, apply_deferred.in_set(PacketHandlerSet::PlayApply));
         }
         if self.status {
             app.add_status_packets();
-        }
-        if self.config {
-            // TODO
         }
     }
 }
@@ -123,21 +125,47 @@ impl AppProtocolExt for App {
     }
 
     fn add_login_packets(&mut self) -> &mut Self {
-        self.add_outgoing_packet::<login::Disconnect>(ProtocolState::Login, 0x00)
+        use ProtocolState::Login;
+        self.add_incoming_packet::<login::LoginStart>(Login, 0x00, false)
+            .add_incoming_packet::<login::LoginAcknowledged>(Login, 0x03, true)
+            .add_outgoing_packet::<common::Disconnect>(Login, 0x00)
+            .add_outgoing_packet::<login::LoginSuccess>(Login, 0x02)
     }
 
     fn add_play_packets(&mut self) -> &mut Self {
-        self
+        use ProtocolState::Play;
+        self.add_incoming_packet::<common::KeepAlive>(Play, 0x15, false)
+            .add_incoming_packet::<common::PingRequest>(Play, 0x1E, false)
+            .add_incoming_packet::<common::Ping>(Play, 0x24, false)
+            .add_outgoing_packet::<common::KeepAlive>(Play, 0x24)
+            .add_outgoing_packet::<play::Login>(Play, 0x29)
+            .add_outgoing_packet::<common::Ping>(Play, 0x33)
+            .add_outgoing_packet::<common::PingRequest>(Play, 0x34)
+            .add_outgoing_packet::<play::SynchronizePlayerPosition>(Play, 0x3E)
+            .add_outgoing_packet::<play::SetDefaultSpawnPosition>(Play, 0x54)
     }
 
     fn add_status_packets(&mut self) -> &mut Self {
-        self.add_incoming_packet::<status::Request>(ProtocolState::Status, 0x00, false)
-            .add_incoming_packet::<status::Ping>(ProtocolState::Status, 0x01, false)
-            .add_outgoing_packet::<status::Response>(ProtocolState::Status, 0x00)
-            .add_outgoing_packet::<status::Ping>(ProtocolState::Status, 0x01)
+        use ProtocolState::Status;
+        self.add_incoming_packet::<status::Request>(Status, 0x00, false)
+            .add_incoming_packet::<common::PingRequest>(Status, 0x01, false)
+            .add_outgoing_packet::<status::Response>(Status, 0x00)
+            .add_outgoing_packet::<common::PingRequest>(Status, 0x01)
     }
 
     fn add_config_packets(&mut self) -> &mut Self {
-        self
+        use ProtocolState::Config;
+        self.add_incoming_packet::<config::ClientInformation>(Config, 0x00, false)
+            .add_incoming_packet::<config::Finish>(Config, 0x02, true)
+            .add_incoming_packet::<common::KeepAlive>(Config, 0x03, false)
+            .add_incoming_packet::<common::Ping>(Config, 0x04, false)
+            .add_incoming_packet::<config::ResourcePackResponse>(Config, 0x05, false)
+            .add_outgoing_packet::<common::Disconnect>(Config, 0x01)
+            .add_outgoing_packet::<config::Finish>(Config, 0x02)
+            .add_outgoing_packet::<common::KeepAlive>(Config, 0x03)
+            .add_outgoing_packet::<common::Ping>(Config, 0x04)
+            .add_outgoing_packet::<config::RegistryData>(Config, 0x05)
+            .add_outgoing_packet::<config::RemoveResourcePack>(Config, 0x06)
+            .add_outgoing_packet::<config::AddResourcePack>(Config, 0x07)
     }
 }

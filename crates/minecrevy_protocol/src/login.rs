@@ -6,10 +6,14 @@ use minecrevy_io::{
     args::{ListArgs, ListLength, OptionArgs, OptionTag, StringArgs},
     McRead, McWrite,
 };
-use minecrevy_text::Text;
 use uuid::Uuid;
 
 /// A packet sent by the client to begin the login process.
+///
+/// # Event Consumption Notes
+///
+/// This is a **stateful** packet. Further incoming packets are paused for
+/// reading until the client is unpaused.
 #[derive(Clone, PartialEq, Debug)]
 pub struct LoginStart {
     /// The username of the player.
@@ -107,28 +111,5 @@ impl McWrite for Property {
             },
         )?;
         Ok(())
-    }
-}
-
-/// A packet sent by the server to indicate a failed login.
-#[derive(Clone, PartialEq, Debug)]
-pub struct Disconnect {
-    /// The reason for the disconnect.
-    pub reason: Text,
-}
-
-impl Default for Disconnect {
-    fn default() -> Self {
-        Self {
-            reason: Text::from("Disconnected"),
-        }
-    }
-}
-
-impl McWrite for Disconnect {
-    type Args = ();
-
-    fn write(&self, writer: impl io::Write, (): Self::Args) -> io::Result<()> {
-        self.reason.write_default(writer)
     }
 }

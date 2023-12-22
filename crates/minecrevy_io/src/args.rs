@@ -92,7 +92,7 @@ pub struct NbtArgs {
     /// The compression algorithm
     pub compression: Compression,
     /// The maximum length of the blob.
-    pub max_len: Option<usize>,
+    pub max_len: Option<u64>,
     /// The optional header used for serialization.
     pub header: Option<&'static str>,
 }

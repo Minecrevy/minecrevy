@@ -1,7 +1,7 @@
 use std::io::{self, Read, Write};
 
 use crate::{
-    args::{ArrayArgs, IntArgs, ListArgs, OptionArgs, OptionTag},
+    args::{ArrayArgs, IntArgs, ListArgs, OptionArgs, OptionTag, StringArgs},
     prelude::{ReadMinecraftExt, WriteMinecraftExt},
     McRead, McWrite,
 };
@@ -160,6 +160,30 @@ impl<'a, T: McWrite> McWrite for &'a [T] {
         for val in *self {
             val.write(&mut writer, args.inner.clone())?;
         }
+        Ok(())
+    }
+}
+
+impl McWrite for &str {
+    type Args = StringArgs;
+
+    fn write(&self, mut writer: impl Write, args: Self::Args) -> io::Result<()> {
+        match args.max_len {
+            Some(max_len) if self.len() > max_len => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!(
+                        "exceeded max string length (max: {}, actual: {})",
+                        max_len,
+                        self.len()
+                    ),
+                ))
+            }
+            _ => {}
+        }
+
+        writer.write_var_i32_len(self.len())?;
+        writer.write_all(self.as_bytes())?;
         Ok(())
     }
 }

@@ -15,6 +15,8 @@ edition = { workspace = true }
 [dependencies]
 # workspace
 minecrevy_io = { workspace = true }
+minecrevy_key = { workspace = true }
+minecrevy_nbt = { workspace = true }
 minecrevy_net = { workspace = true }
 minecrevy_text = { workspace = true }
 # bevy

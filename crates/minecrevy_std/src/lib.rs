@@ -11,7 +11,11 @@ use bevy::{
 };
 use thiserror::Error;
 
+pub mod config;
 pub mod handshake;
+pub mod login;
+pub mod play;
+pub mod profile;
 pub mod status;
 
 /// [`Plugin`] that provides core functionality for Minecrevy servers.

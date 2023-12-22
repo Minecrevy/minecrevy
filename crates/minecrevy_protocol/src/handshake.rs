@@ -8,6 +8,11 @@ use minecrevy_io::{
 };
 
 /// A packet sent by the client to initiate a connection.
+///
+/// # Event Consumption Notes
+///
+/// This is a **stateful** packet. Further incoming packets are paused for
+/// reading until the client is unpaused.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Handshake {
     /// The protocol version of the client.

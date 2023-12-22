@@ -15,6 +15,7 @@ edition = { workspace = true }
 [dependencies]
 # workspace
 minecrevy_io = { workspace = true }
+minecrevy_key = { workspace = true }
 minecrevy_net = { workspace = true }
 minecrevy_protocol = { workspace = true }
 minecrevy_text = { workspace = true }
@@ -22,6 +23,8 @@ minecrevy_text = { workspace = true }
 bevy = { workspace = true }
 # serialization
 base64 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 # utilities
 image = { workspace = true }
 thiserror = { workspace = true }
