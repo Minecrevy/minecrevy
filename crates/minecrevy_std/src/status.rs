@@ -1,29 +1,44 @@
 //! This module contains the [`StatusPlugin`], which handles status packets.
 
-use std::io::Cursor;
+use std::{
+    io::{self, Cursor},
+    path::PathBuf,
+};
 
 use base64::Engine;
-use bevy::prelude::*;
-use image::{imageops::FilterType, ImageOutputFormat};
-use minecrevy_net::{client::ClientQ, packet::Recv};
+use bevy::{
+    asset::{io::Reader, AssetLoader, LoadContext},
+    prelude::*,
+    utils::ConditionalSendFuture,
+};
+use image::{imageops::FilterType, ImageFormat};
+use minecrevy_net::{client::PacketWriter, packet::Recv};
 use minecrevy_protocol::{
-    status::{Ping, Request, Response, ResponsePlayers, ResponseVersion},
-    PacketHandlerSet, ServerProtocolPlugin,
+    status::{Ping, Request, Response, ResponsePlayers, ResponseProfile, ResponseVersion},
+    ServerProtocolPlugin,
 };
 use minecrevy_text::Text;
+use thiserror::Error;
+use uuid::Uuid;
 
 use crate::{
     handshake::{ClientInfo, HandshakePlugin},
-    CorePlugin, DynamicImage, PlayerCount,
+    CorePlugin, PlayerCount,
 };
 
 /// [`Plugin`] for handling status packets.
+///
+/// Configurable [`Resource`]s:
+/// - [`ServerProtocol`]: The protocol version to send to clients.
+/// - [`ServerProtocolName`]: The name of the protocol version to send to clients.
+/// - [`Motd`]: The message of the day displayed in the server list.
+/// - [`PlayerSample`]: The list of sample player names to display in the server list.
+/// - [`PlayerCount`]: The number of players to display in the server list, online and maximum.
+/// - [`ServerListFavicon`]: The favicon to display in the server list.
 #[derive(Default)]
 pub struct StatusPlugin {
-    /// The text displayed in the server list.
-    pub motd: Option<Text>,
-    /// The filename of the favicon to display in the server list.
-    pub favicon_filename: Option<String>,
+    /// The path of the favicon to display in the server list.
+    pub favicon_path: Option<PathBuf>,
 }
 
 impl Plugin for StatusPlugin {
@@ -47,125 +62,119 @@ impl Plugin for StatusPlugin {
             std::any::type_name::<Self>(),
         );
 
-        // Use the provided MOTD, or the default if none was provided.
-        app.insert_resource(self.motd.clone().map(Motd).unwrap_or_default());
-        app.init_resource::<Favicon>();
+        app.init_resource::<ServerProtocol>();
+        app.init_resource::<Motd>();
+        app.init_resource::<PlayerSample>();
+        app.init_resource::<ServerListFavicon>();
+        app.init_asset::<Favicon>()
+            .init_asset_loader::<FaviconLoader>();
 
         // Load the favicon if one was provided.
-        if let Some(filename) = self.favicon_filename.clone() {
-            app.add_systems(Startup, Self::load_favicon(filename));
+        if let Some(path) = self.favicon_path.clone() {
+            app.add_systems(Startup, Self::load_favicon(path));
         }
 
         // Handle status::Request and status::Ping packets.
-        app.add_systems(
-            Update,
-            (Self::handle_status_requests, Self::handle_status_pings)
-                .in_set(PacketHandlerSet::Status),
-        );
+        app.add_observer(Self::on_status_request);
+        app.add_observer(Self::on_status_ping);
     }
 }
 
 impl StatusPlugin {
     /// Returns a [`System`] that loads the favicon from the given filename.
-    pub fn load_favicon(filename: String) -> impl FnMut(Res<AssetServer>, ResMut<Favicon>) {
-        move |asset_server: Res<AssetServer>, mut favicon: ResMut<Favicon>| {
-            let handle = asset_server.load(filename.clone());
-            favicon.0 = Some(handle);
-        }
+    pub fn load_favicon(path: PathBuf) -> impl IntoSystem<(), (), ()> {
+        IntoSystem::into_system(
+            move |asset_server: Res<AssetServer>, mut favicon: ResMut<ServerListFavicon>| {
+                let handle = asset_server.load(path.clone());
+                favicon.0 = Some(handle);
+            },
+        )
     }
 
-    /// [`System`] that handles displaying the MOTD and favicon to clients in the server list.
-    pub fn handle_status_requests(
-        mut requests: EventReader<Recv<Request>>,
-        clients: Query<(ClientQ, &ClientInfo)>,
+    /// [`Observer`] [`System`] that handles displaying the MOTD and favicon to clients in the server list.
+    #[expect(clippy::too_many_arguments)]
+    pub fn on_status_request(
+        trigger: Trigger<Recv<Request>>,
+        mut writer: PacketWriter,
         counts: Res<PlayerCount>,
+        version_name: Res<ServerProtocolName>,
+        version: Res<ServerProtocol>,
         motd: Res<Motd>,
-        favicon: Res<Favicon>,
-        mut images: ResMut<Assets<DynamicImage>>,
-        mut favicon_cache: Local<Option<FaviconCache>>,
+        sample: Res<PlayerSample>,
+        favicon: Res<ServerListFavicon>,
+        favicons: Res<Assets<Favicon>>,
+        client_info: Query<&ClientInfo>,
     ) {
-        // Update the favicon cache.
-        'favicon: {
-            let is_cache_dirty = favicon_cache.as_ref().map(|fc| &fc.handle) != favicon.0.as_ref();
-            if is_cache_dirty {
-                let Some(favicon) = favicon.0.as_ref() else {
-                    // favicon was removed
-                    *favicon_cache = None;
-                    break 'favicon;
-                };
+        let writer = writer.client(trigger.entity());
 
-                let Some(image) = images.get(favicon) else {
-                    // Favicon was not loaded yet.
-                    *favicon_cache = None;
-                    break 'favicon;
-                };
+        let favicon = favicon
+            .0
+            .as_ref()
+            .and_then(|handle| favicons.get(handle))
+            .map(|f| f.base64.clone());
 
-                // Resize the image to 64x64 if necessary.
-                // The vanilla client won't display favicons that aren't 64x64.
-                if image.width() != 64 || image.height() != 64 {
-                    warn!("Favicon {:?} is not 64x64, resizing", favicon.path());
-                    let resized = image.resize_to_fill(64, 64, FilterType::Nearest);
+        let version = match *version {
+            ServerProtocol::Echo => client_info
+                .get(trigger.entity())
+                .map(|i| i.protocol_version)
+                .unwrap_or(0),
+            ServerProtocol::Version(v) => v,
+        };
 
-                    // Replace the loaded image with the resized one.
-                    images.insert(favicon, DynamicImage(resized));
-                }
-
-                // Reborrow the image (in case it was resized).
-                let Some(image) = images.get(favicon) else {
-                    error!("Favicon was unloaded somehow?");
-                    *favicon_cache = None;
-                    break 'favicon;
-                };
-
-                // Encode the image to base64 PNG.
-                let mut bytes: Cursor<Vec<u8>> = Cursor::new(Vec::new());
-                if let Err(e) = image.write_to(&mut bytes, ImageOutputFormat::Png) {
-                    error!("Could not encode favicon as a PNG: {}", e);
-                    *favicon_cache = None;
-                    break 'favicon;
-                }
-                let b64 = base64::engine::general_purpose::STANDARD.encode(bytes.into_inner());
-
-                *favicon_cache = Some(FaviconCache {
-                    handle: favicon.clone(),
-                    data: format!("data:image/png;base64,{}", b64),
-                });
-                info!("Favicon loaded and cached.");
-            }
-        }
-
-        for Recv { client, packet: _ } in requests.read() {
-            let Ok((client, info)) = clients.get(*client) else {
-                continue;
-            };
-
-            client.send(Response {
-                version: ResponseVersion {
-                    name: "Ping Server".into(),
-                    protocol: info.protocol_version,
-                },
-                players: ResponsePlayers {
-                    max: counts.max,
-                    online: counts.online,
-                    sample: Vec::new(),
-                },
-                description: motd.0.clone(),
-                favicon: favicon_cache.as_ref().map(|f| &f.data).cloned(),
-                enforces_secure_chat: None,
-                previews_chat: None,
-            });
-        }
+        writer.send(&Response {
+            version: ResponseVersion {
+                name: version_name.0.clone(),
+                protocol: version,
+            },
+            players: ResponsePlayers {
+                max: counts.max,
+                online: counts.online,
+                sample: sample
+                    .0
+                    .clone()
+                    .into_iter()
+                    .map(|name| ResponseProfile {
+                        name,
+                        id: Uuid::nil(),
+                    })
+                    .collect(),
+            },
+            description: motd.0.clone(),
+            favicon,
+            enforces_secure_chat: None,
+            previews_chat: None,
+        });
     }
 
-    /// [`System`] that responds to clients' ping requests.
-    pub fn handle_status_pings(mut packets: EventReader<Recv<Ping>>, clients: Query<ClientQ>) {
-        for Recv { client, packet } in packets.read() {
-            let Ok(client) = clients.get(*client) else {
-                continue;
-            };
+    /// [`Observer`] [`System`] that responds to clients' ping requests.
+    pub fn on_status_ping(trigger: Trigger<Recv<Ping>>, mut writer: PacketWriter) {
+        let packet = &trigger.event().0;
+        let writer = writer.client(trigger.entity());
 
-            client.send(packet.clone());
-        }
+        // Echo the client's payload back to them.
+        writer.send(packet);
+    }
+}
+
+/// [`Resource`] that stores the protocol version of the server to send to clients.
+#[derive(Resource)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum ServerProtocol {
+    /// The client's protocol version wlll be sent back to them.
+    #[default]
+    Echo,
+    /// This specific protocol version will be sent to clients.
+    Version(i32),
+}
+
+/// [`Resource`] that stores the name of the protocol version to send to clients.
+#[derive(Resource)]
+#[derive(Clone, PartialEq, Debug)]
+pub struct ServerProtocolName(pub String);
+
+impl Default for ServerProtocolName {
+    fn default() -> Self {
+        Self("Ping Server".into())
     }
 }
 
@@ -180,15 +189,88 @@ impl Default for Motd {
     }
 }
 
-/// [`Resource`] for the image to display in the server list.
+/// [`Resource`] for the list of sample player names to display in the server list.
 #[derive(Resource, Deref, DerefMut)]
 #[derive(Clone, PartialEq, Debug, Default)]
-pub struct Favicon(pub Option<Handle<DynamicImage>>);
+pub struct PlayerSample(pub Vec<String>);
 
-/// [`Local`] used by [`StatusPlugin`] to cache the base64-encoded favicon.
-pub struct FaviconCache {
-    /// The [`Handle`] to the currently encoded favicon.
-    handle: Handle<DynamicImage>,
-    /// The base64-encoded favicon PNG.
-    data: String,
+/// [`Resource`] that stores a [`Handle`] to the [`Favicon`], which is used to
+/// display an image in the server list. The favicon is automatically resized
+/// to 64x64 pixels. If no favicon is provided, no image will be sent to clients.
+///
+/// Clients appear to cache the favicon, so it will not be removed if the server
+/// stops sending it.
+#[derive(Resource, Default)]
+pub struct ServerListFavicon(pub Option<Handle<Favicon>>);
+
+/// [`Asset`] that wraps [`image::DynamicImage`]s.
+#[derive(Asset, TypePath)]
+pub struct Favicon {
+    /// The image data.
+    pub image: image::DynamicImage,
+    /// The base64-encoded image data.
+    pub base64: String,
+}
+
+/// [`AssetLoader`] for [`DynamicImage`]s.
+#[derive(Default)]
+pub struct FaviconLoader;
+
+/// Error type for [`DynamicImageLoader`].
+#[derive(Error, Debug)]
+pub enum FaviconLoaderError {
+    /// Error variant for image laoding.
+    #[error("Could not load image: {0}")]
+    Io(#[from] io::Error),
+    /// Error variant for image parsing.
+    #[error("Could not parse image: {0}")]
+    Image(#[from] image::ImageError),
+}
+
+impl AssetLoader for FaviconLoader {
+    type Asset = Favicon;
+    type Settings = ();
+    type Error = FaviconLoaderError;
+
+    fn extensions(&self) -> &[&str] {
+        &["png", "jpg", "webp"]
+    }
+
+    fn load(
+        &self,
+        reader: &mut dyn Reader,
+        _settings: &Self::Settings,
+        load_context: &mut LoadContext,
+    ) -> impl ConditionalSendFuture<Output = Result<Self::Asset, Self::Error>> {
+        async move {
+            let extension = load_context.path().extension().unwrap().to_str().unwrap();
+
+            let format = match extension {
+                "png" => image::ImageFormat::Png,
+                "jpg" => image::ImageFormat::Jpeg,
+                "webp" => image::ImageFormat::WebP,
+                _ => unreachable!("Unsupported image format: {}", extension),
+            };
+
+            let mut bytes = Vec::new();
+            reader.read_to_end(&mut bytes).await?;
+
+            let mut image = image::load_from_memory_with_format(&bytes, format)?;
+
+            // Resize the image to 64x64 if it isn't already.
+            if image.width() != 64 || image.height() != 64 {
+                image = image.resize(64, 64, FilterType::Nearest);
+            }
+
+            // Encode the image to base64 PNG.
+            let mut bytes: Cursor<Vec<u8>> = Cursor::new(Vec::new());
+            image.write_to(&mut bytes, ImageFormat::Png)?;
+            let b64 = base64::engine::general_purpose::STANDARD.encode(bytes.into_inner());
+
+            Ok(Favicon {
+                image,
+                base64: format!("data:image/png;base64,{}", b64),
+            })
+        }
+    }
 }

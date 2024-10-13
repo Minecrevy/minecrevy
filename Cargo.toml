@@ -1,11 +1,12 @@
 [workspace]
-members = ["crates/*"]
+members = ["crates/*", "projects/*"]
 
 [workspace.package]
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/Minecrevy/minecrevy"
 repository = "https://github.com/Minecrevy/minecrevy"
 edition = "2021"
+version = "0.2.0"
 
 [workspace.dependencies]
 # workspace
@@ -15,15 +16,14 @@ minecrevy_protocol = { path = "crates/minecrevy_protocol" }
 minecrevy_std = { path = "crates/minecrevy_std" }
 minecrevy_text = { path = "crates/minecrevy_text" }
 # bevy
-bevy = "0.12"
+bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "813c759" }
 # concurrency and networking
-dashmap = "5.5"
 flume = "0.11"
 futures-util = "0.3"
 tokio = "1.34"
 tokio-util = "0.7"
 # serialization
-base64 = "0.21"
+base64 = "0.22"
 byteorder = "1.5"
 bytes = "1.5"
 serde = "1.0"
@@ -31,8 +31,8 @@ serde_json = "1.0"
 # logging
 tracing = "0.1"
 # utilities
-glam = "0.24"
-image = "0.24"
+glam = "0.29"
+image = "0.25"
 thiserror = "1.0"
 uuid = "1.6"
 

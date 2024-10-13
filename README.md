@@ -1,5 +1,7 @@
 # Minecrevy
 
+Disclaimer: This is primarily a research project to drive improvements to Bevy.
+
 A toolkit for building [Rust](https://www.rust-lang.org/)-based
 [Minecraft: Java Edition](https://www.minecraft.net/en-us) servers,
 using [Bevy Engine](https://bevyengine.org/).
@@ -26,23 +28,15 @@ Regardless, feel free to implement your own dynamic scripting on top.
 
 ## Roadmap
 
-Each `0.x` release milestone is focused on the ability to build a certain type
-of server with the tools provided by Minecrevy.
+Minecrevy development is motivated through realistic usecases.
+That means that for a new version of the Minecrevy toolkit to be released,
+the project associated with the version must have reached its MVP milestone.
 
-### 0.1.0 - Ping Server
+### List of projects
 
-- [x] Multiplayer server list ping
-    - [x] Automatic favicon resizing
-- [x] Automatically disconnected if trying to login
-
-### 0.2.0 - Void Lobby Server
-
-- [ ] Login past loading screen, no chunks
-- [ ] Basic chat support
-
-### 0.3.0 - World Viewer Server
-
-- [ ] Send chunks, read only
+- `v0.2.0` - [Server list advertiser](projects/0.2.0-server-list/)
+- `v0.3.0` - [Void lobby world](projects/0.3.0-void-lobby/)
+- `v0.4.0` - [Lobby world](projects/0.4.0-lobby/)
 
 ## License
 

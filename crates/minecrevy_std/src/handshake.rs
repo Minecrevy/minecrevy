@@ -1,22 +1,18 @@
 //! This module contains the [`HandshakePlugin`], which handles handshake packets.
 
-use std::ops::Deref;
-
 use bevy::prelude::*;
 use minecrevy_net::{
-    client::{Client, Paused, ProtocolState},
-    packet::{PacketIds, Recv},
+    client::{PacketWriter, ProtocolState},
+    packet::Recv,
 };
-use minecrevy_protocol::{
-    handshake::Handshake, login::Disconnect, PacketHandlerSet, ServerProtocolPlugin,
-};
+use minecrevy_protocol::{handshake::Handshake, login::Disconnect, ServerProtocolPlugin};
 use minecrevy_text::Text;
 
 /// [`Plugin`] that handles the Minecraft protocol handshake.
-pub struct HandshakePlugin {
-    /// Whether or not to allow clients to log in.
-    pub allow_login: bool,
-}
+///
+/// Configurable [`Resource`]s:
+/// - [`AllowLogin`]: Whether or not clients are allowed to log in.
+pub struct HandshakePlugin;
 
 impl Plugin for HandshakePlugin {
     fn build(&self, app: &mut App) {
@@ -27,64 +23,47 @@ impl Plugin for HandshakePlugin {
             std::any::type_name::<Self>(),
         );
 
-        app.insert_resource(AllowLogin(self.allow_login));
+        app.init_resource::<AllowLogin>();
 
-        app.add_systems(
-            Update,
-            Self::handle_handshakes.in_set(PacketHandlerSet::Handshake),
-        );
+        app.add_observer(Self::on_handshake);
     }
 }
 
 impl HandshakePlugin {
-    /// [`System`] that handles [`Handshake`] packets.
-    pub fn handle_handshakes(
+    /// [`Observer`] [`System`] that handles incoming handshake packets.
+    pub fn on_handshake(
+        trigger: Trigger<Recv<Handshake>>,
+        mut writer: PacketWriter,
         allow_login: Res<AllowLogin>,
-        ids: Res<PacketIds>,
         mut commands: Commands,
-        mut packets: EventReader<Recv<Handshake>>,
-        mut clients: Query<(&Client, &mut ProtocolState, &mut Paused)>,
     ) {
-        for Recv {
-            client: client_ent,
-            packet,
-        } in packets.read()
-        {
-            let Ok((client, mut state, mut paused)) = clients.get_mut(*client_ent) else {
-                continue;
-            };
+        let packet = &trigger.event().0;
+        let mut writer = writer.client(trigger.entity());
 
-            *state = match packet.next_state {
-                1 => ProtocolState::Status,
-                2 => ProtocolState::Login,
-                _ => {
-                    // unknown state
-                    continue;
-                }
-            };
+        writer.set_state(match packet.next_state {
+            1 => ProtocolState::Status,
+            2 => ProtocolState::Login,
+            // unknown state
+            _ => return,
+        });
 
-            if *state == ProtocolState::Login && !allow_login.0 {
-                client.send(
-                    &*ids,
-                    &state,
-                    Disconnect {
-                        reason: Text::from("Logins are disabled."),
-                    },
-                );
-                continue;
+        if writer.state() == ProtocolState::Login {
+            if let Err(reason) = &allow_login.0 {
+                writer.send(&Disconnect {
+                    reason: reason
+                        .clone()
+                        .unwrap_or_else(|| Text::from("Logins are disabled.")),
+                });
+                commands.entity(trigger.entity()).despawn();
+                return;
             }
-
-            paused.0 = false;
-
-            commands.entity(*client_ent).insert((
-                ids.deref().clone(),
-                ClientInfo {
-                    protocol_version: packet.protocol_version,
-                    server_address: packet.server_address.clone(),
-                    server_port: packet.server_port,
-                },
-            ));
         }
+
+        commands.entity(trigger.entity()).insert(ClientInfo {
+            protocol_version: packet.protocol_version,
+            server_address: packet.server_address.clone(),
+            server_port: packet.server_port,
+        });
     }
 }
 
@@ -101,5 +80,11 @@ pub struct ClientInfo {
 
 /// [`Resource`] that stores whether or not clients are allowed to log in.
 #[derive(Resource, Deref, DerefMut)]
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-pub struct AllowLogin(pub bool);
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct AllowLogin(pub Result<(), Option<Text>>);
+
+impl Default for AllowLogin {
+    fn default() -> Self {
+        Self(Ok(()))
+    }
+}

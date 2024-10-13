@@ -3,7 +3,7 @@
 #![warn(missing_docs)]
 
 use bevy::prelude::*;
-use minecrevy_net::{client::ProtocolState, AppNetworkExt, NetworkPlugin};
+use minecrevy_net::{client::ProtocolState, AppNetworkExt};
 
 pub mod config;
 pub mod handshake;
@@ -28,13 +28,6 @@ pub struct ServerProtocolPlugin {
 
 impl Plugin for ServerProtocolPlugin {
     fn build(&self, app: &mut App) {
-        assert!(
-            app.is_plugin_added::<NetworkPlugin>(),
-            "{} must be added before {}",
-            std::any::type_name::<NetworkPlugin>(),
-            std::any::type_name::<Self>(),
-        );
-
         app.configure_sets(
             Update,
             (
@@ -119,7 +112,7 @@ pub trait AppProtocolExt {
 
 impl AppProtocolExt for App {
     fn add_handshake_packet(&mut self) -> &mut Self {
-        self.add_incoming_packet::<handshake::Handshake>(ProtocolState::Handshake, 0x00, true)
+        self.add_incoming_packet::<handshake::Handshake>(ProtocolState::Handshake, 0x00)
     }
 
     fn add_login_packets(&mut self) -> &mut Self {
@@ -131,8 +124,8 @@ impl AppProtocolExt for App {
     }
 
     fn add_status_packets(&mut self) -> &mut Self {
-        self.add_incoming_packet::<status::Request>(ProtocolState::Status, 0x00, false)
-            .add_incoming_packet::<status::Ping>(ProtocolState::Status, 0x01, false)
+        self.add_incoming_packet::<status::Request>(ProtocolState::Status, 0x00)
+            .add_incoming_packet::<status::Ping>(ProtocolState::Status, 0x01)
             .add_outgoing_packet::<status::Response>(ProtocolState::Status, 0x00)
             .add_outgoing_packet::<status::Ping>(ProtocolState::Status, 0x01)
     }

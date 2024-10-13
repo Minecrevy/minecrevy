@@ -4,11 +4,11 @@ description = "A library for standard/universal Minecraft server features."
 keywords = ["bevy", "minecraft", "server"]
 categories = ["game-development", "network-programming"]
 readme = "README.md"
-version = "0.1.0"
-license = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
-edition = { workspace = true }
+version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -18,10 +18,9 @@ minecrevy_io = { workspace = true }
 minecrevy_net = { workspace = true }
 minecrevy_protocol = { workspace = true }
 minecrevy_text = { workspace = true }
-# bevy
+# external
 bevy = { workspace = true }
-# serialization
 base64 = { workspace = true }
-# utilities
 image = { workspace = true }
 thiserror = { workspace = true }
+uuid = { workspace = true }

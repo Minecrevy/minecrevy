@@ -3,17 +3,18 @@ name = "minecrevy_text"
 description = "A library for handling Minecraft text components."
 keywords = ["bevy", "minecraft", "text", "component"]
 categories = ["game-development", "data-structures"]
-version = "0.1.0"
-license = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
-edition = { workspace = true }
+version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 # workspace
 minecrevy_io = { workspace = true }
-# serialization
+# external
+bevy = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

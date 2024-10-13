@@ -4,11 +4,11 @@ description = "A library for reading and writing Minecraft protocol types."
 keywords = ["bevy", "minecraft", "protocol", "packets"]
 categories = ["encoding", "game-development", "network-programming"]
 readme = "README.md"
-version = "0.1.0"
-license = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
-edition = { workspace = true }
+version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -17,12 +17,12 @@ default = ["codec"]
 codec = ["bytes", "tokio-util"]
 
 [dependencies]
-# concurrency and networking
-tokio-util = { workspace = true, optional = true, features = ["codec"] }
-# serialization
+# workspace
+
+# external
 byteorder = { workspace = true }
 bytes = { workspace = true, optional = true }
-# utilities
 glam = { workspace = true }
+tokio-util = { workspace = true, optional = true, features = ["codec"] }
 uuid = { workspace = true }
 

@@ -4,21 +4,19 @@ description = "A client-server networking library for Minecraft with Bevy."
 keywords = ["bevy", "minecraft", "networking", "protocol", "server"]
 categories = ["game-development", "network-programming"]
 readme = "README.md"
-version = "0.1.0"
-license = { workspace = true }
-homepage = { workspace = true }
-repository = { workspace = true }
-edition = { workspace = true }
+version.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 # workspace
 minecrevy_io = { workspace = true }
-# bevy
+# external
 bevy =  { workspace = true }
-# concurrency & networking
-dashmap = { workspace = true }
 flume = { workspace = true }
 futures-util = { workspace = true, features = ["sink"] }
 tokio = { workspace = true, features = ["full"] }
