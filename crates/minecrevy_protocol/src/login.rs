@@ -6,19 +6,18 @@ use minecrevy_io::{
     args::{ListArgs, ListLength, OptionArgs, OptionTag, StringArgs},
     McRead, McWrite,
 };
-use minecrevy_text::Text;
 use uuid::Uuid;
 
 /// A packet sent by the client to begin the login process.
 #[derive(Clone, PartialEq, Debug)]
-pub struct LoginStart {
+pub struct Start {
     /// The username of the player.
     pub username: String,
     /// The UUID of the player.
     pub uuid: Uuid,
 }
 
-impl McRead for LoginStart {
+impl McRead for Start {
     type Args = ();
 
     fn read(mut reader: impl io::Read, (): Self::Args) -> io::Result<Self> {
@@ -31,9 +30,9 @@ impl McRead for LoginStart {
 
 /// A packet sent by the client to finish the login process.
 #[derive(Clone, PartialEq, Debug)]
-pub struct LoginAcknowledged;
+pub struct Acknowledged;
 
-impl McRead for LoginAcknowledged {
+impl McRead for Acknowledged {
     type Args = ();
 
     fn read(_: impl io::Read, (): Self::Args) -> io::Result<Self> {
@@ -43,16 +42,19 @@ impl McRead for LoginAcknowledged {
 
 /// A packet sent by the server to indicate a successful login.
 #[derive(Clone, PartialEq, Debug)]
-pub struct LoginSuccess {
+pub struct Success {
     /// The UUID of the player.
     pub uuid: Uuid,
     /// The username of the player.
     pub username: String,
     /// The properties of the player, such as their skin.
     pub properties: Vec<Property>,
+    /// Whether the client should immediately disconnect on packet processing errors.
+    // TODO: Remove in 1.21.2
+    pub strict_error_handling: bool,
 }
 
-impl McWrite for LoginSuccess {
+impl McWrite for Success {
     type Args = ();
 
     fn write(&self, mut writer: impl io::Write, (): Self::Args) -> io::Result<()> {
@@ -60,12 +62,13 @@ impl McWrite for LoginSuccess {
         self.username
             .write(&mut writer, StringArgs { max_len: Some(16) })?;
         self.properties.write(
-            writer,
+            &mut writer,
             ListArgs {
                 length: ListLength::VarInt,
                 inner: (),
             },
         )?;
+        self.strict_error_handling.write_default(writer)?;
         Ok(())
     }
 }
@@ -110,25 +113,5 @@ impl McWrite for Property {
     }
 }
 
-/// A packet sent by the server to indicate a failed login.
-#[derive(Clone, PartialEq, Debug)]
-pub struct Disconnect {
-    /// The reason for the disconnect.
-    pub reason: Text,
-}
-
-impl Default for Disconnect {
-    fn default() -> Self {
-        Self {
-            reason: Text::from("Disconnected"),
-        }
-    }
-}
-
-impl McWrite for Disconnect {
-    type Args = ();
-
-    fn write(&self, writer: impl io::Write, (): Self::Args) -> io::Result<()> {
-        self.reason.write_default(writer)
-    }
-}
+/// A packet sent by the server to signal a failed login.
+pub type Disconnect = crate::Disconnect;

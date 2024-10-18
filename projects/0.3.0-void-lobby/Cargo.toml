@@ -1,0 +1,18 @@
+[package]
+name = "void-lobby"
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+edition.workspace = true
+version.workspace = true
+
+[dependencies]
+# workspace
+minecrevy_net = { workspace = true }
+minecrevy_protocol = { workspace = true }
+minecrevy_std = { workspace = true }
+minecrevy_text = { workspace = true }
+# external
+bevy = { workspace = true }
+clap = { version = "4.5.20", features = ["derive"] }
+tracing = { workspace = true }

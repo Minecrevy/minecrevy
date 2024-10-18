@@ -2,7 +2,7 @@
 
 #![warn(missing_docs)]
 
-use std::fmt;
+use std::fmt::{self, Debug};
 
 use bevy::{app::PluginGroupBuilder, prelude::*};
 use minecrevy_io::{McRead, McWrite};
@@ -32,7 +32,7 @@ pub trait AppNetworkExt {
     /// Registers the given incoming packet type with the given [`ProtocolState`] and packet ID.
     ///
     /// If `stateful` is `true`, then the client will be paused until the packet is handled.
-    fn add_incoming_packet<T: McRead + Send + Sync + 'static>(
+    fn add_incoming_packet<T: McRead + Debug + Send + Sync + 'static>(
         &mut self,
         state: ProtocolState,
         id: i32,
@@ -47,7 +47,7 @@ pub trait AppNetworkExt {
 }
 
 impl AppNetworkExt for App {
-    fn add_incoming_packet<T: McRead + Send + Sync + 'static>(
+    fn add_incoming_packet<T: McRead + Debug + Send + Sync + 'static>(
         &mut self,
         state: ProtocolState,
         id: i32,

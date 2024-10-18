@@ -101,7 +101,10 @@ impl ServerPlugin {
                     .resource::<IncomingPacketHandlers>()
                     .get(state, packet.id)
                 else {
-                    warn!("No handler for packet {} in state {state:?}", packet.id);
+                    warn!(
+                        "No handler for packet 0x{:02X} in state {state:?}",
+                        packet.id
+                    );
                     return;
                 };
 

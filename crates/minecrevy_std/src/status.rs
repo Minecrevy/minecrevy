@@ -13,18 +13,14 @@ use bevy::{
 };
 use image::{imageops::FilterType, ImageFormat};
 use minecrevy_net::{client::PacketWriter, packet::Recv};
-use minecrevy_protocol::{
-    status::{Ping, Request, Response, ResponsePlayers, ResponseProfile, ResponseVersion},
-    ServerProtocolPlugin,
+use minecrevy_protocol::status::{
+    Ping, Request, Response, ResponsePlayers, ResponseProfile, ResponseVersion,
 };
 use minecrevy_text::Text;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{
-    handshake::{ClientInfo, HandshakePlugin},
-    CorePlugin, PlayerCount,
-};
+use crate::{handshake::ConnectionInfo, PlayerCount};
 
 /// [`Plugin`] for handling status packets.
 ///
@@ -43,26 +39,8 @@ pub struct StatusPlugin {
 
 impl Plugin for StatusPlugin {
     fn build(&self, app: &mut App) {
-        assert!(
-            app.is_plugin_added::<ServerProtocolPlugin>(),
-            "{} must be added before {}",
-            std::any::type_name::<ServerProtocolPlugin>(),
-            std::any::type_name::<Self>(),
-        );
-        assert!(
-            app.is_plugin_added::<CorePlugin>(),
-            "{} must be added before {}",
-            std::any::type_name::<CorePlugin>(),
-            std::any::type_name::<Self>(),
-        );
-        assert!(
-            app.is_plugin_added::<HandshakePlugin>(),
-            "{} must be added before {}",
-            std::any::type_name::<HandshakePlugin>(),
-            std::any::type_name::<Self>(),
-        );
-
         app.init_resource::<ServerProtocol>();
+        app.init_resource::<ServerProtocolName>();
         app.init_resource::<Motd>();
         app.init_resource::<PlayerSample>();
         app.init_resource::<ServerListFavicon>();
@@ -103,9 +81,9 @@ impl StatusPlugin {
         sample: Res<PlayerSample>,
         favicon: Res<ServerListFavicon>,
         favicons: Res<Assets<Favicon>>,
-        client_info: Query<&ClientInfo>,
+        client_info: Query<&ConnectionInfo>,
     ) {
-        let writer = writer.client(trigger.entity());
+        let mut writer = writer.client(trigger.entity());
 
         let favicon = favicon
             .0
@@ -149,7 +127,7 @@ impl StatusPlugin {
     /// [`Observer`] [`System`] that responds to clients' ping requests.
     pub fn on_status_ping(trigger: Trigger<Recv<Ping>>, mut writer: PacketWriter) {
         let packet = &trigger.event().0;
-        let writer = writer.client(trigger.entity());
+        let mut writer = writer.client(trigger.entity());
 
         // Echo the client's payload back to them.
         writer.send(packet);

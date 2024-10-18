@@ -1,6 +1,6 @@
 //! This module contains the [`ClientPlugin`], which handles client communication, both client-side and server-side.
 
-use std::{io, net::SocketAddr};
+use std::{fmt::Debug, io, net::SocketAddr};
 
 use bevy::{
     ecs::{
@@ -58,7 +58,7 @@ impl ClientAddressIndex {
 /// [`SystemParam`] for writing packets to clients.
 #[derive(SystemParam)]
 pub struct PacketWriter<'w, 's> {
-    clients: Query<'w, 's, (&'static Client, &'static mut ProtocolState)>,
+    clients: Query<'w, 's, (Entity, &'static Client, &'static mut ProtocolState)>,
     outgoing_ids: Res<'w, OutgoingPacketIds>,
 }
 
@@ -84,7 +84,8 @@ impl PacketWriter<'_, '_> {
         let outgoing_ids = &self.outgoing_ids;
         self.clients
             .get_mut(client)
-            .map(move |(client, state)| ClientPacketWriter {
+            .map(move |(entity, client, state)| ClientPacketWriter {
+                entity,
                 client,
                 state,
                 outgoing_ids,
@@ -92,8 +93,8 @@ impl PacketWriter<'_, '_> {
     }
 
     /// Sends the given packet to the given client.
-    pub fn send<T: McWrite + 'static>(&mut self, client: Entity, packet: &T) -> &mut Self {
-        let client = self.get_client(client).unwrap();
+    pub fn send<T: McWrite + Debug + 'static>(&mut self, client: Entity, packet: &T) -> &mut Self {
+        let mut client = self.get_client(client).unwrap();
         client.send(packet);
         drop(client);
         self
@@ -102,23 +103,39 @@ impl PacketWriter<'_, '_> {
 
 /// A writer for sending packets to a client.
 pub struct ClientPacketWriter<'w> {
+    entity: Entity,
     client: &'w Client,
     state: Mut<'w, ProtocolState>,
     outgoing_ids: &'w OutgoingPacketIds,
 }
 
 impl ClientPacketWriter<'_> {
+    /// Returns the [`Entity`] of the client.
+    pub fn entity(&self) -> Entity {
+        self.entity
+    }
+
     /// Sends the given packet to the client.
-    pub fn send<T: McWrite + 'static>(&self, packet: &T) -> &Self {
+    pub fn send<T: McWrite + Debug + 'static>(&mut self, packet: &T) -> &mut Self {
         let id = self.outgoing_ids.get::<T>(*self.state).unwrap_or_else(|| {
             panic!(
                 "Packet {:?} is not registered for state {:?}",
                 std::any::type_name::<T>(),
-                self.state
+                *self.state
             )
         });
         self.client.send(id, packet);
+        trace!(
+            "Sent packet {} to client {}: {packet:?}",
+            std::any::type_name::<T>(),
+            self.entity(),
+        );
         self
+    }
+
+    /// Returns the [`Client`] being written to.
+    pub fn client(&self) -> &Client {
+        self.client
     }
 
     /// Returns the [`Client`]'s current [`ProtocolState`].
@@ -127,8 +144,9 @@ impl ClientPacketWriter<'_> {
     }
 
     /// Changes the [`Client`]'s [`ProtocolState`].
-    pub fn set_state(&mut self, state: ProtocolState) {
+    pub fn set_state(&mut self, state: ProtocolState) -> &mut Self {
         *self.state = state;
+        self
     }
 }
 
@@ -168,6 +186,13 @@ impl Client {
     /// Returns the address of the client.
     pub fn addr(&self) -> SocketAddr {
         self.addr
+    }
+
+    /// Sends the given raw packet to the client.
+    ///
+    /// Prefer using [`PacketWriter`] or [`ClientPacketWriter`] instead.
+    pub fn send_raw(&self, packet: RawPacket) {
+        let _ = self.outgoing.send(WriteOp::Send(packet));
     }
 
     /// Sends the given packet to the client.

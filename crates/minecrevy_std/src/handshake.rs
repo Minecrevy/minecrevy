@@ -5,7 +5,7 @@ use minecrevy_net::{
     client::{PacketWriter, ProtocolState},
     packet::Recv,
 };
-use minecrevy_protocol::{handshake::Handshake, login::Disconnect, ServerProtocolPlugin};
+use minecrevy_protocol::{handshake::Handshake, login::Disconnect};
 use minecrevy_text::Text;
 
 /// [`Plugin`] that handles the Minecraft protocol handshake.
@@ -16,13 +16,6 @@ pub struct HandshakePlugin;
 
 impl Plugin for HandshakePlugin {
     fn build(&self, app: &mut App) {
-        assert!(
-            app.is_plugin_added::<ServerProtocolPlugin>(),
-            "{} must be added before {}",
-            std::any::type_name::<ServerProtocolPlugin>(),
-            std::any::type_name::<Self>(),
-        );
-
         app.init_resource::<AllowLogin>();
 
         app.add_observer(Self::on_handshake);
@@ -59,7 +52,7 @@ impl HandshakePlugin {
             }
         }
 
-        commands.entity(trigger.entity()).insert(ClientInfo {
+        commands.entity(trigger.entity()).insert(ConnectionInfo {
             protocol_version: packet.protocol_version,
             server_address: packet.server_address.clone(),
             server_port: packet.server_port,
@@ -69,7 +62,7 @@ impl HandshakePlugin {
 
 /// [`Component`] that stores information about the client's handshake.
 #[derive(Component)]
-pub struct ClientInfo {
+pub struct ConnectionInfo {
     /// The protocol version of the client.
     pub protocol_version: i32,
     /// The address of the server the client is connecting to.

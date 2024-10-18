@@ -86,6 +86,31 @@ pub enum OptionTag {
     Remaining,
 }
 
+/// Arguments for reading NBT compounds.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum NbtRead {
+    /// The root name is not read.
+    Network,
+    /// The root name is read.
+    #[default]
+    Other,
+}
+
+/// Arguments for writing NBT compounds.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum NbtWrite {
+    /// The root name is not written.
+    Network,
+    /// The root name is written.
+    Other(&'static str),
+}
+
+impl Default for NbtWrite {
+    fn default() -> Self {
+        NbtWrite::Other("")
+    }
+}
+
 /// Arguments for reading and writing NBT blobs.
 #[derive(Clone, Debug, Default)]
 pub struct NbtArgs {

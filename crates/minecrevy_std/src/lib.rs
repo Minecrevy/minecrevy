@@ -4,7 +4,10 @@
 
 use bevy::prelude::*;
 
+pub mod config;
 pub mod handshake;
+pub mod login;
+pub mod play;
 pub mod status;
 
 /// [`Plugin`] that provides core functionality for Minecrevy servers.
@@ -16,13 +19,6 @@ pub struct CorePlugin;
 
 impl Plugin for CorePlugin {
     fn build(&self, app: &mut App) {
-        assert!(
-            app.is_plugin_added::<AssetPlugin>(),
-            "{} must be added before {}",
-            std::any::type_name::<AssetPlugin>(),
-            std::any::type_name::<Self>(),
-        );
-
         app.init_resource::<PlayerCount>();
     }
 }

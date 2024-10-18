@@ -1,4 +1,7 @@
-use std::io::{self, Read, Write};
+use std::{
+    io::{self, Read, Write},
+    mem::MaybeUninit,
+};
 
 use crate::{
     args::{ArrayArgs, IntArgs, ListArgs, OptionArgs, OptionTag},
@@ -132,13 +135,12 @@ impl<T: McRead, const N: usize> McRead for [T; N] {
     type Args = ArrayArgs<T::Args>;
 
     fn read(mut reader: impl Read, args: Self::Args) -> io::Result<Self> {
-        // TODO: use std::array::try_from_fn when stabilized
-        let mut vec = Vec::with_capacity(N);
-        for _ in 0..N {
-            vec.push(T::read(&mut reader, args.inner.clone())?);
+        // TODO: use array::try_map when it's stable
+        let mut arr = [const { MaybeUninit::uninit() }; N];
+        for elem in &mut arr {
+            *elem = MaybeUninit::new(T::read(&mut reader, args.inner.clone())?);
         }
-        vec.try_into()
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "failed to convert vec to array"))
+        Ok(arr.map(|e| unsafe { e.assume_init() }))
     }
 }
 

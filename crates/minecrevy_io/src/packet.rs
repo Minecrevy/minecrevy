@@ -26,6 +26,11 @@ pub struct RawPacket {
 }
 
 impl RawPacket {
+    /// Creates a new [`RawPacket`] with the given ID and body.
+    pub fn new(id: i32, body: Vec<u8>) -> Self {
+        Self { id, body }
+    }
+
     /// Returns the length of the packet.
     ///
     /// This corresponds to the Length field in the packet format mentioned [here][RawPacket].

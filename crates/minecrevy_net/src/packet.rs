@@ -2,6 +2,7 @@
 
 use std::{
     any::TypeId,
+    fmt::Debug,
     ops::{Deref, DerefMut},
 };
 
@@ -48,7 +49,10 @@ impl IncomingPacketHandlers {
     /// Inserts a [`PacketHandler`] for the given packet ID and
     /// [`ProtocolState`], which deserializes the [`RawPacket`] into the given
     /// type `T` and triggers a [`Recv<T>`] event.
-    pub fn insert<T: McRead + Send + Sync + 'static>(&mut self, state: ProtocolState, id: i32) {
+    pub fn insert<T>(&mut self, state: ProtocolState, id: i32)
+    where
+        T: McRead + Debug + Send + Sync + 'static,
+    {
         self.0.insert((state, id), |world, client, packet| {
             let Ok(packet) = T::read_default(packet.reader()) else {
                 warn!(
@@ -58,7 +62,12 @@ impl IncomingPacketHandlers {
                 return;
             };
 
+            trace!(
+                "Received packet {} from client {client}: {packet:?}",
+                std::any::type_name::<T>()
+            );
             world.trigger_targets(Recv(packet), client);
+            world.flush();
         });
     }
 }

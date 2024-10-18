@@ -16,9 +16,12 @@ edition.workspace = true
 # workspace
 minecrevy_io = { workspace = true }
 minecrevy_net = { workspace = true }
+minecrevy_nbt = { workspace = true }
 minecrevy_text = { workspace = true }
 # external
 bevy = { workspace = true }
+enumflags2 = { workspace = true }
+fastnbt = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 uuid = { workspace = true }

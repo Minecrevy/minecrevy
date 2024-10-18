@@ -18,11 +18,11 @@ codec = ["bytes", "tokio-util"]
 
 [dependencies]
 # workspace
-
 # external
 byteorder = { workspace = true }
 bytes = { workspace = true, optional = true }
+enumflags2 = { workspace = true }
+fastnbt = { workspace = true }
 glam = { workspace = true }
 tokio-util = { workspace = true, optional = true, features = ["codec"] }
 uuid = { workspace = true }
-
