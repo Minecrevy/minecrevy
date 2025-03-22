@@ -1,0 +1,15 @@
+[package]
+name = "minecrevy_net"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bevy_app = { workspace = true }
+bevy_ecs = { workspace = true }
+bevy_reflect = { workspace = true }
+byteorder = { workspace = true, features = ["std"] }
+crossbeam-channel = { workspace = true, features = ["std"] }
+futures-util = { workspace = true, features = ["sink"] }
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt", "sync", "time"] }
+tokio-util = { workspace = true, features = ["codec"] }
+tracing = { workspace = true }
