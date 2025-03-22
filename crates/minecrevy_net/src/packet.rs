@@ -79,12 +79,12 @@ fn read_var_i32(src: &mut Cursor<&[u8]>) -> io::Result<i32> {
     }
 
     let max_read = 5.min(readable);
-    let mut value = byte & SEGMENT_MASK;
+    let mut value = (byte & SEGMENT_MASK) as u32;
 
     let mut len = 1;
     while len < max_read {
         byte = src.read_u8()?;
-        value |= (byte & SEGMENT_MASK) << (len * 7);
+        value |= ((byte & SEGMENT_MASK) as u32) << (len * 7);
         if (byte & CONTINUE_BIT) != CONTINUE_BIT {
             return Ok(value as i32);
         }
@@ -119,7 +119,7 @@ fn write_var_i32(dst: &mut BytesMut, value: i32) {
             | (((value >> 7) & SEGMENT_MASK | CONTINUE_BIT) << 8)
             | (value >> 14);
         // write u24
-        dst.put_slice(&w.to_be_bytes()[..3]);
+        dst.put_slice(&w.to_be_bytes()[1..4]);
     } else if (value & (0xFF_FF_FF_FF << 28)) == 0 {
         let w = ((value & SEGMENT_MASK | CONTINUE_BIT) << 24)
             | (((value >> 7) & SEGMENT_MASK | CONTINUE_BIT) << 16)
@@ -157,6 +157,13 @@ fn var_i32_size(value: i32) -> usize {
 
 #[cfg(test)]
 mod tests {
+    use tokio_util::{
+        bytes::BytesMut,
+        codec::{Decoder, Encoder},
+    };
+
+    use crate::packet::RawPacketCodec;
+
     #[test]
     fn test_var_i32_size() {
         assert_eq!(super::var_i32_size(0), 1);
@@ -171,5 +178,118 @@ mod tests {
         assert_eq!(super::var_i32_size(268435456), 5);
         assert_eq!(super::var_i32_size(-1), 5);
         assert_eq!(super::var_i32_size(-268435456), 5);
+    }
+
+    #[test]
+    fn test_read_var_i32() {
+        let mut cursor = std::io::Cursor::new(&[0x00][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 0);
+
+        let mut cursor = std::io::Cursor::new(&[0x01][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 1);
+
+        let mut cursor = std::io::Cursor::new(&[0x7F][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 127);
+
+        let mut cursor = std::io::Cursor::new(&[0x80, 0x01][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 128);
+
+        let mut cursor = std::io::Cursor::new(&[0xFF, 0x7F][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 16383);
+
+        let mut cursor = std::io::Cursor::new(&[0x80, 0x80, 0x01][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 16384);
+
+        let mut cursor = std::io::Cursor::new(&[0xFF, 0xFF, 0x7F][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 2097151);
+
+        let mut cursor = std::io::Cursor::new(&[0x80, 0x80, 0x80, 0x01][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 2097152);
+
+        let mut cursor = std::io::Cursor::new(&[0xFF, 0xFF, 0xFF, 0x7F][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 268435455);
+
+        let mut cursor = std::io::Cursor::new(&[0x80, 0x80, 0x80, 0x80, 0x01][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), 268435456);
+
+        let mut cursor = std::io::Cursor::new(&[0xFF, 0xFF, 0xFF, 0xFF, 0x0F][..]);
+        assert_eq!(super::read_var_i32(&mut cursor).unwrap(), -1);
+    }
+
+    #[test]
+    fn test_write_var_i32() {
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 0);
+        assert_eq!(buf, BytesMut::from(&[0x00][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 1);
+        assert_eq!(buf, BytesMut::from(&[0x01][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 127);
+        assert_eq!(buf, BytesMut::from(&[0x7F][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 128);
+        assert_eq!(buf, BytesMut::from(&[0x80, 0x01][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 16383);
+        assert_eq!(buf, BytesMut::from(&[0xFF, 0x7F][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 16384);
+        assert_eq!(buf, BytesMut::from(&[0x80, 0x80, 0x01][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 2097151);
+        assert_eq!(buf, BytesMut::from(&[0xFF, 0xFF, 0x7F][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 2097152);
+        assert_eq!(buf, BytesMut::from(&[0x80, 0x80, 0x80, 0x01][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 268435455);
+        assert_eq!(buf, BytesMut::from(&[0xFF, 0xFF, 0xFF, 0x7F][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, 268435456);
+        assert_eq!(buf, BytesMut::from(&[0x80, 0x80, 0x80, 0x80, 0x01][..]));
+
+        let mut buf = BytesMut::new();
+        super::write_var_i32(&mut buf, -1);
+        assert_eq!(buf, BytesMut::from(&[0xFF, 0xFF, 0xFF, 0xFF, 0x0F][..]));
+    }
+
+    #[test]
+    fn test_decode_raw_packet() {
+        let mut codec = RawPacketCodec {
+            compression_threshold: None,
+        };
+        let mut buf = BytesMut::from(&[0x03, 0x01, 0x02, 0x03][..]);
+        let packet = codec.decode(&mut buf).unwrap().unwrap();
+        assert_eq!(
+            packet,
+            super::RawPacket {
+                id: 1,
+                data: vec![0x02, 0x03],
+            }
+        );
+    }
+
+    #[test]
+    fn test_encode_raw_packet() {
+        let mut codec = RawPacketCodec {
+            compression_threshold: None,
+        };
+        let mut buf = BytesMut::new();
+        let packet = super::RawPacket {
+            id: 1,
+            data: vec![0x02, 0x03],
+        };
+        codec.encode(packet, &mut buf).unwrap();
+        assert_eq!(buf, BytesMut::from(&[0x03, 0x01, 0x02, 0x03][..]));
     }
 }
